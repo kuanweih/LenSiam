@@ -4,7 +4,7 @@ import torch
 from tqdm import tqdm
 
 from arguments import get_args
-from augmentations import get_aug
+# from augmentations import get_aug
 from datasets import get_dataset
 from models import get_model
 
@@ -16,9 +16,6 @@ from optimizers import get_optimizer, LR_Scheduler
 from datetime import datetime
 
 
-from datasets.paired_lensing_dataset import LensingImageTransform
-
-
 
 def main(device, args):
 
@@ -28,38 +25,6 @@ def main(device, args):
         batch_size=args.train.batch_size,
         # **args.dataloader_kwargs,
     )
-
-
-    # for (im1, im2), y in train_loader:
-    for im1, im2, y in train_loader:
-        print(im1.shape)
-        print(im2.shape)
-        # print(x.shape)
-        # print(x[:,:,0].shape)
-        print(y)
-
-
-    exit()
-
-    # # TODO what does memory_loader do?
-    # memory_loader = torch.utils.data.DataLoader(
-    #     dataset=get_dataset(
-    #         transform=get_aug(train=False, train_classifier=False, **args.aug_kwargs), 
-    #         train=True,
-    #         **args.dataset_kwargs),
-    #     shuffle=False,
-    #     batch_size=args.train.batch_size,
-    #     **args.dataloader_kwargs,
-    # )
-    # test_loader = torch.utils.data.DataLoader(
-    #     dataset=get_dataset(
-    #         transform=get_aug(train=False, train_classifier=False, **args.aug_kwargs),
-    #         train=False,
-    #         **args.dataset_kwargs),
-    #     shuffle=False,
-    #     batch_size=args.train.batch_size,
-    #     **args.dataloader_kwargs,
-    # )
 
     # define model
     model = get_model(args.model).to(device)
@@ -103,7 +68,7 @@ def main(device, args):
             desc=f'Epoch {epoch}/{args.train.num_epochs}',
             disable=args.hide_progress,
         )
-        for idx, ((images1, images2), labels) in enumerate(local_progress):
+        for idx, (images1, images2, labels) in enumerate(local_progress):
             # idx and labels will not be used
 
             model.zero_grad()
@@ -119,11 +84,6 @@ def main(device, args):
 
             local_progress.set_postfix(data_dict)
             logger.update_scalers(data_dict)
-
-        # if args.train.knn_monitor and epoch % args.train.knn_interval == 0: 
-        #     accuracy = knn_monitor(model.module.backbone, memory_loader, test_loader, device, 
-        #                            k=min(args.train.knn_k, len(memory_loader.dataset)), 
-        #                            hide_progress=args.hide_progress) 
 
         epoch_dict = {"epoch":epoch, "accuracy":accuracy}
         global_progress.set_postfix(epoch_dict)
