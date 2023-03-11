@@ -22,7 +22,7 @@ train:
   ###################
   stop_at_epoch: 2 # has to be smaller than num_epochs
   ####################
-  batch_size: 20
+  batch_size: 4
   knn_monitor: False # knn monitor will take more time
   knn_interval: 1
   knn_k: 25

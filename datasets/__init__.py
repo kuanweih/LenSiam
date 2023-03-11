@@ -1,9 +1,9 @@
-from .paired_lensing_dataset import PairedLensingDataset
+from .paired_lensing_dataset import PairedLensingImageDataset
 
 
-def get_dataset(dataset, data_dir, transform, debug_subset_size=None):
+def get_dataset(dataset, data_dir):
     if dataset == 'lensing-dev':
-        dataset = PairedLensingDataset(data_dir, transform=transform)
+        dataset = PairedLensingImageDataset(data_dir)
     else:
         raise NotImplementedError
     return dataset

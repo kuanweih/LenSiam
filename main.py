@@ -16,29 +16,28 @@ from optimizers import get_optimizer, LR_Scheduler
 from datetime import datetime
 
 
+from datasets.paired_lensing_dataset import LensingImageTransform
+
+
+
 def main(device, args):
 
-    dataset = get_dataset(
-        # transform=get_aug(train=True, **args.aug_kwargs),
-        transform = None,
-        **args.dataset_kwargs,
+    train_loader = torch.utils.data.DataLoader(
+        dataset=get_dataset(**args.dataset_kwargs),
+        # shuffle=True,
+        batch_size=args.train.batch_size,
+        # **args.dataloader_kwargs,
     )
 
-    im1, im2, y = dataset[0]
 
-    print(im1.shape)
-    print(im2.shape)
-    print(y)
+    # for (im1, im2), y in train_loader:
+    for im1, im2, y in train_loader:
+        print(im1.shape)
+        print(im2.shape)
+        # print(x.shape)
+        # print(x[:,:,0].shape)
+        print(y)
 
-    # train_loader = torch.utils.data.DataLoader(
-    #     dataset=get_dataset(
-    #         transform=get_aug(train=True, **args.aug_kwargs),
-    #         train=True,
-    #         **args.dataset_kwargs),
-    #     shuffle=True,
-    #     batch_size=args.train.batch_size,
-    #     **args.dataloader_kwargs,
-    # )
 
     exit()
 
@@ -52,15 +51,15 @@ def main(device, args):
     #     batch_size=args.train.batch_size,
     #     **args.dataloader_kwargs,
     # )
-    test_loader = torch.utils.data.DataLoader(
-        dataset=get_dataset(
-            transform=get_aug(train=False, train_classifier=False, **args.aug_kwargs),
-            train=False,
-            **args.dataset_kwargs),
-        shuffle=False,
-        batch_size=args.train.batch_size,
-        **args.dataloader_kwargs,
-    )
+    # test_loader = torch.utils.data.DataLoader(
+    #     dataset=get_dataset(
+    #         transform=get_aug(train=False, train_classifier=False, **args.aug_kwargs),
+    #         train=False,
+    #         **args.dataset_kwargs),
+    #     shuffle=False,
+    #     batch_size=args.train.batch_size,
+    #     **args.dataloader_kwargs,
+    # )
 
     # define model
     model = get_model(args.model).to(device)

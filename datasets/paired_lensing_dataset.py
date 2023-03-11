@@ -1,7 +1,9 @@
 import glob
 import os
+import numpy as np
 from astropy.io import fits
 from torch.utils.data import Dataset
+from torchvision import transforms
 
 
 parameters = ['theta_E', 'e1', 'e2', 'center_x', 'center_y', 'gamma', 'gamma1', 'gamma2']
@@ -15,30 +17,47 @@ def load_fits_file(file_path):
         param (dict): dictionary of lensing parameters/labels
     """
     with fits.open(file_path, memmap=False) as hdul:
-        data = hdul[0].data
+        data = hdul[0].data.astype(np.float32)
         param = {}
         for key in parameters:
             param[key] = hdul[0].header[key]
     return data, param
 
 
-class PairedLensingDataset(Dataset):
+class LensingImageTransform():
+    """ Pytorch transform class for a single image.
+    """
+    def __init__(self):
+        image_size = 224
+        imagenet_mean_std = [[0.485, 0.456, 0.406], [0.229, 0.224, 0.225]]
+        self.transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Resize(image_size),
+            transforms.Lambda(lambda x: x.repeat(3, 1, 1)),  # grayscale -> RGB
+            transforms.Normalize(*imagenet_mean_std),
+        ])
+    def __call__(self, x):
+        return self.transform(x)
 
-    def __init__(self, root=None, transform=None, target_transform=None):
+
+class PairedLensingImageDataset(Dataset):
+    """ Pytorch Dataset Object for the paired lensing image dataset in fits file.
+    """
+    def __init__(self, root=None):
         self.root = root
-        self.transform = transform
-        self.target_transform = target_transform
+        # self.transform = LensingImageTransform()
+        # self.target_transform = target_transform
         self.file_names = glob.glob(os.path.join(self.root, "*.fits"))
         self.size = len(self.file_names)
 
     def __getitem__(self, idx):
         if idx >= self.size:
             raise Exception
-
         img_pair, label = load_fits_file(self.file_names[idx])
-
-        return img_pair[:,:,0], img_pair[:,:,1], label
-        # return [torch.randn((3, 224, 224)), torch.randn((3, 224, 224))], [0,0,0]
+        transform = LensingImageTransform()
+        img1 = transform(img_pair[:, :, 0])
+        img2 = transform(img_pair[:, :, 1])
+        return img1, img2, label
 
     def __len__(self):
         return self.size
