@@ -2,3 +2,4 @@ tqdm
 pyyaml
 tensorboardX
 matplotlib
+astropy
