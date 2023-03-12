@@ -1,12 +1,15 @@
 import matplotlib
 matplotlib.use('Agg') #https://stackoverflow.com/questions/49921721/runtimeerror-main-thread-is-not-in-main-loop-with-matplotlib-and-flask
 import matplotlib.pyplot as plt
+
 from collections import OrderedDict
 from torch import Tensor
 
-class Plotter(object):
+
+class Plotter:
     def __init__(self):
         self.logger = OrderedDict()
+
     def update(self, ordered_dict):
         for key, value in ordered_dict.items():
             if isinstance(value, Tensor):
@@ -25,11 +28,3 @@ class Plotter(object):
 
         plt.savefig(file, **kwargs)
         plt.close()
-
-
-
-
-
-
-
-

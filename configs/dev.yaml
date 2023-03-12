@@ -1,7 +1,7 @@
 name: simsiam-lensing-dev
+
 dataset: 
   name: lensing-dev
-  image_size: 32
   num_workers: 4
 
 model: 
@@ -23,23 +23,8 @@ train:
   stop_at_epoch: 2 # has to be smaller than num_epochs
   ####################
   batch_size: 4
-  knn_monitor: False # knn monitor will take more time
-  knn_interval: 1
-  knn_k: 25
-eval: # linear evaluation, False will turn off automatic evaluation after training
-  optimizer: 
-    name: sgd
-    weight_decay: 0
-    momentum: 0.9
-  warmup_lr: 0
-  warmup_epochs: 0
-  base_lr: 30
-  final_lr: 0
-  batch_size: 256
-  num_epochs: 30
 
 logger:
-  tensorboard: False
   matplotlib: True
 
 seed: null # None type for yaml file

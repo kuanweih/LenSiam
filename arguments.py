@@ -26,6 +26,10 @@ class Namespace:
 
 
 def set_deterministic(seed):
+    """ Set all the random seeds to seed to make it deterministic.
+    Args:
+        seed (int): random seed
+    """
     # seed by default is None 
     if seed is not None:
         print(f"Deterministic with seed = {seed}")
@@ -37,55 +41,40 @@ def set_deterministic(seed):
         torch.backends.cudnn.benchmark = False 
 
 def get_args():
+    """ Get arguments.
+    Returns:
+        argparse.Namespace: arguments
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--config-file', required=True, type=str, help="xxx.yaml")
-    parser.add_argument('--debug', action='store_true')
-    parser.add_argument('--debug_subset_size', type=int, default=8)
-    parser.add_argument('--download', action='store_true', help="if can't find dataset, download from web")
-    parser.add_argument('--data_dir', type=str, default=os.getenv('DATA'))
-    parser.add_argument('--log_dir', type=str, default=os.getenv('LOG'))
-    parser.add_argument('--ckpt_dir', type=str, default=os.getenv('CHECKPOINT'))
+    parser.add_argument('--data_dir', required=True, type=str, help="path/to/the/dataset")
+    parser.add_argument('--log_dir', type=str, default="./logs")
+    parser.add_argument('--ckpt_dir', type=str, default="./.cache")
     parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu')
-    parser.add_argument('--eval_from', type=str, default=None)
-    parser.add_argument('--hide_progress', action='store_true')
     args = parser.parse_args()
 
+    # load config yaml to args
     with open(args.config_file, 'r') as f:
         for key, value in Namespace(yaml.load(f, Loader=yaml.FullLoader)).__dict__.items():
             vars(args)[key] = value
 
-    if args.debug:
-        if args.train: 
-            args.train.batch_size = 2
-            args.train.num_epochs = 1
-            args.train.stop_at_epoch = 1
-        if args.eval: 
-            args.eval.batch_size = 2
-            args.eval.num_epochs = 1 # train only one epoch
-        args.dataset.num_workers = 0
-
+    # make sure the following arg values are not None
     assert not None in [args.log_dir, args.data_dir, args.ckpt_dir, args.name]
 
+    # create folders/files: log, checkpoint, config, etc
     args.log_dir = os.path.join(
         args.log_dir, f"in-progress_{datetime.now().strftime('%m%d%H%M%S')}_{args.name}")
-
     os.makedirs(args.log_dir, exist_ok=False)
-    print(f'creating file {args.log_dir}')
     os.makedirs(args.ckpt_dir, exist_ok=True)
-
     shutil.copy2(args.config_file, args.log_dir)
+    
+    # set most if not all random seeds by args.seed if it is provided
     set_deterministic(args.seed)
 
-
-    vars(args)['aug_kwargs'] = {
-        'name':args.model.name,
-        'image_size': args.dataset.image_size
-    }
+    # create kwargs for various purposes
     vars(args)['dataset_kwargs'] = {
-        'dataset':args.dataset.name,
+        'dataset_name': args.dataset.name,
         'data_dir': args.data_dir,
-        # 'download':args.download,
-        # 'debug_subset_size': args.debug_subset_size if args.debug else None,
     }
     vars(args)['dataloader_kwargs'] = {
         'drop_last': True,
