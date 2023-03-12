@@ -3,7 +3,7 @@ import numpy as np
 # from torch.optim.lr_scheduler import _LRScheduler
 
 
-class LR_Scheduler(object):
+class LR_Scheduler:
     def __init__(self, optimizer, warmup_epochs, warmup_lr, num_epochs, base_lr, final_lr, iter_per_epoch, constant_predictor_lr=False):
         self.base_lr = base_lr
         self.constant_predictor_lr = constant_predictor_lr
