@@ -51,8 +51,6 @@ def main(device, args):
         log_dir=args.log_dir,
     )
 
-
-    accuracy = 0
     # Start training
     global_progress = tqdm(range(0, args.train.stop_at_epoch), desc='Training')
     for epoch in global_progress:
@@ -80,7 +78,10 @@ def main(device, args):
             local_progress.set_postfix(data_dict)
             logger.update_scalers(data_dict)
 
-        epoch_dict = {"epoch":epoch, "accuracy":accuracy}
+        epoch_dict = {
+            "epoch": epoch,
+            "loss": loss.item(),
+        }
         global_progress.set_postfix(epoch_dict)
         logger.update_scalers(epoch_dict)
 
@@ -89,8 +90,8 @@ def main(device, args):
     model_path = os.path.join(args.ckpt_dir, model_file_name)
     torch.save(
         {
-        'epoch': epoch + 1,
-        'state_dict': model.module.state_dict(),
+            'epoch': epoch + 1,
+            'state_dict': model.module.state_dict(),
         },
         model_path,
     )
@@ -98,9 +99,7 @@ def main(device, args):
     with open(os.path.join(args.log_dir, f"checkpoint_path.txt"), 'w+') as file:
         file.write(f'{model_path}')
 
-    # if args.eval is not False:
-    #     args.eval_from = model_path
-    #     linear_eval(args)
+
 
 
 if __name__ == "__main__":
