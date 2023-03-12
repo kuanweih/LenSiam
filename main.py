@@ -1,20 +1,14 @@
 import os
 import torch
-# import torch.nn.functional as F
+
+from datetime import datetime
 from tqdm import tqdm
 
 from arguments import get_args
-# from augmentations import get_aug
 from datasets import get_dataset
 from models import get_model
-
-# from tools import knn_monitor, file_exist_check
-from tools import Logger
-
 from optimizers import get_optimizer, LR_Scheduler
-# from linear_eval import main as linear_eval
-from datetime import datetime
-
+from tools import Logger
 
 
 def main(device, args):
@@ -104,11 +98,9 @@ def main(device, args):
     with open(os.path.join(args.log_dir, f"checkpoint_path.txt"), 'w+') as file:
         file.write(f'{model_path}')
 
-    exit()
-
-    if args.eval is not False:
-        args.eval_from = model_path
-        linear_eval(args)
+    # if args.eval is not False:
+    #     args.eval_from = model_path
+    #     linear_eval(args)
 
 
 if __name__ == "__main__":
@@ -116,12 +108,9 @@ if __name__ == "__main__":
 
     main(device=args.device, args=args)
 
-    # completed_log_dir = args.log_dir.replace('in-progress', 'debug' if args.debug else 'completed')
-
-
-
-    # os.rename(args.log_dir, completed_log_dir)
-    # print(f'Log file has been saved to {completed_log_dir}')
+    completed_log_dir = args.log_dir.replace('in-progress', 'debug' if args.debug else 'completed')
+    os.rename(args.log_dir, completed_log_dir)
+    print(f'Log file has been saved to {completed_log_dir}')
 
 
 
