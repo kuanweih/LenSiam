@@ -19,6 +19,8 @@ from datetime import datetime
 
 def main(device, args):
 
+    print(device)
+
     train_loader = torch.utils.data.DataLoader(
         dataset=get_dataset(**args.dataset_kwargs),
         # shuffle=True,
@@ -26,7 +28,6 @@ def main(device, args):
         # **args.dataloader_kwargs,
     )
 
-    # define model
     model = get_model(args.model).to(device)
     model = torch.nn.DataParallel(model)
 
