@@ -13,13 +13,11 @@ from tools import Logger
 
 def main(device, args):
 
-    print(device)
-
     train_loader = torch.utils.data.DataLoader(
         dataset=get_dataset(**args.dataset_kwargs),
-        # shuffle=True,
+        shuffle=True,
         batch_size=args.train.batch_size,
-        # **args.dataloader_kwargs,
+        **args.dataloader_kwargs,
     )
 
     model = get_model(args.model).to(device)
@@ -46,9 +44,8 @@ def main(device, args):
     )
 
     logger = Logger(
-        tensorboard=args.logger.tensorboard,
-        matplotlib=args.logger.matplotlib,
         log_dir=args.log_dir,
+        matplotlib=args.logger.matplotlib,
     )
 
     # Start training
@@ -59,7 +56,6 @@ def main(device, args):
         local_progress = tqdm(
             train_loader,
             desc=f'Epoch {epoch}/{args.train.num_epochs}',
-            disable=args.hide_progress,
         )
         for idx, (images1, images2, labels) in enumerate(local_progress):
             # idx and labels will not be used
@@ -73,8 +69,8 @@ def main(device, args):
             loss.backward()
             optimizer.step()
             lr_scheduler.step()
-            data_dict.update({'lr': lr_scheduler.get_lr()})
 
+            data_dict.update({'lr': lr_scheduler.get_lr()})
             local_progress.set_postfix(data_dict)
             logger.update_scalers(data_dict)
 
@@ -103,11 +99,14 @@ def main(device, args):
 
 
 if __name__ == "__main__":
+
     args = get_args()
+    print(f"We will be using device = {args.device}!")
 
     main(device=args.device, args=args)
 
-    completed_log_dir = args.log_dir.replace('in-progress', 'debug' if args.debug else 'completed')
+    # wrap up logs
+    completed_log_dir = args.log_dir.replace('in-progress', 'completed')
     os.rename(args.log_dir, completed_log_dir)
     print(f'Log file has been saved to {completed_log_dir}')
 
