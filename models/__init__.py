@@ -1,5 +1,8 @@
 import torch
-from torchvision.models import resnet50, resnet18
+
+from torchvision.models import resnet50, resnet18, vit_b_16
+from transformers import ViTForImageClassification
+
 from .simsiam import SimSiam
 
 
@@ -11,17 +14,30 @@ def get_backbone(backbone, castrate=True):
     Returns:
         torch model: the backbone model
     """
+
     # TODO: add bigger resnet and vit backbone here!
 
     if backbone == 'resnet18':
         backbone_model = resnet18()
+    elif backbone == 'resnet50':
+        backbone_model = resnet50()
+    elif backbone == 'vit-base':
+        # backbone_model = vit_b_16()
+        # print(backbone_model)
+        backbone_model = ViTForImageClassification.from_pretrained("google/vit-base-patch16-224")
     else:
         raise NotImplementedError
 
     # TODO check paper to see if this is neccesary?
     if castrate:
-        backbone_model.output_dim = backbone_model.fc.in_features
-        backbone_model.fc = torch.nn.Identity()
+        if backbone in ["resnet18", "resnet50"]:
+            backbone_model.output_dim = backbone_model.fc.in_features
+            backbone_model.fc = torch.nn.Identity()
+        elif backbone in ["vit-base"]:
+            backbone_model.output_dim = backbone_model.classifier.in_features
+            backbone_model.classifier = torch.nn.Identity()
+        else:
+            raise NotImplementedError
 
     return backbone_model
 
@@ -29,7 +45,7 @@ def get_backbone(backbone, castrate=True):
 def get_model(model_cfg):
     """ Get the main model, e.g. SimSiam = backbone + projector.
     Args:
-        model_cfg (?): model config TODO make it dict?
+        model_cfg (arguments.Namespace): model config
     Returns:
         torch model: the main model
     """

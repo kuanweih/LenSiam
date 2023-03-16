@@ -93,14 +93,15 @@ class SimSiam(nn.Module):
         self.backbone = backbone
         self.projector = projection_MLP(backbone.output_dim)
 
-        self.encoder = nn.Sequential( # f encoder
+        # f encoder
+        self.encoder = nn.Sequential(
             self.backbone,
             self.projector
         )
+        # h predictor
         self.predictor = prediction_MLP()
     
     def forward(self, x1, x2):
-
         f, h = self.encoder, self.predictor
         z1, z2 = f(x1), f(x2)
         p1, p2 = h(z1), h(z2)
