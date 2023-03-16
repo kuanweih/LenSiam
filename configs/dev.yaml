@@ -2,12 +2,14 @@ name: simsiam-lensing-dev
 
 dataset: 
   name: lensing-dev
-  num_workers: 4
+  # num_workers: 4
+  num_workers: 0
 
 model: 
   name: simsiam
-  backbone: resnet18
-  proj_layers: 2
+  # backbone: vit-base
+  backbone: resnet50
+  proj_layers: 3
 
 train:
   optimizer: 
@@ -22,7 +24,7 @@ train:
   ###################
   stop_at_epoch: 2 # has to be smaller than num_epochs
   ####################
-  batch_size: 4
+  batch_size: 20
 
 logger:
   matplotlib: True
