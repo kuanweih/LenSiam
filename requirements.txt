@@ -2,3 +2,4 @@ tqdm
 pyyaml
 matplotlib
 astropy
+transformers
