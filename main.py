@@ -82,12 +82,15 @@ def main(device, args):
         logger.update_scalers(epoch_dict)
 
     # Save checkpoint
-    model_file_name = f"{args.name}_{datetime.now().strftime('%m%d%H%M%S')}.pth"
+    model_file_name = f"{args.name}_{datetime.now().strftime('%m%d%H%M%S')}.pt"
     model_path = os.path.join(args.ckpt_dir, model_file_name)
     torch.save(
         {
             'epoch': epoch + 1,
-            'state_dict': model.module.state_dict(),
+            'full_model': args.model.name,            
+            'full_model_state_dict': model.module.state_dict(),  # entire simsiam model
+            'backbone': args.model.backbone,
+            'backbone_state_dict': model.module.backbone.state_dict(),  # backbone model
         },
         model_path,
     )
