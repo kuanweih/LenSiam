@@ -10,7 +10,6 @@ def D(p, z, version='simplified'): # negative cosine similarity
         p = F.normalize(p, dim=1) # l2-normalize 
         z = F.normalize(z, dim=1) # l2-normalize 
         return -(p*z).sum(dim=1).mean()
-
     elif version == 'simplified':# same thing, much faster. Scroll down, speed test in __main__
         return - F.cosine_similarity(p, z.detach(), dim=-1).mean()
     else:
@@ -89,22 +88,19 @@ class prediction_MLP(nn.Module):
 class SimSiam(nn.Module):
     def __init__(self, backbone=resnet50()):
         super().__init__()
-        
+
+        # f encoder
         self.backbone = backbone
         self.projector = projection_MLP(backbone.output_dim)
 
-        # f encoder
-        self.encoder = nn.Sequential(
-            self.backbone,
-            self.projector
-        )
         # h predictor
         self.predictor = prediction_MLP()
     
     def forward(self, x1, x2):
-        f, h = self.encoder, self.predictor
-        z1, z2 = f(x1), f(x2)
-        p1, p2 = h(z1), h(z2)
+        z1 = self.projector(self.backbone(x1))  # z1 = f(x1)
+        z2 = self.projector(self.backbone(x2))  # z2 = f(x2)
+        p1 = self.predictor(z1)  # p1 = h(z1)
+        p2 = self.predictor(z2)  # p2 = h(z2)
         L = D(p1, z2) / 2 + D(p2, z1) / 2
         return {'loss': L}
 
