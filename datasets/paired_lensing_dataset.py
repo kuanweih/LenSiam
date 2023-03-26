@@ -45,8 +45,6 @@ class PairedLensingImageDataset(Dataset):
     """
     def __init__(self, root=None):
         self.root = root
-        # self.transform = LensingImageTransform()
-        # self.target_transform = target_transform
         self.file_names = glob.glob(os.path.join(self.root, "*.fits"))
         self.size = len(self.file_names)
 
