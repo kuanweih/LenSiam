@@ -1,14 +1,12 @@
 import os
 import torch
 
-from datetime import datetime
 from tqdm import tqdm
-
 from arguments import get_args
 from datasets import get_dataset
 from models import get_model
 from optimizers import get_optimizer, LR_Scheduler
-from tools import Logger
+from tools import Logger, Checkpointer
 
 
 def main(device, args):
@@ -47,6 +45,7 @@ def main(device, args):
         log_dir=args.log_dir,
         matplotlib=args.logger.matplotlib,
     )
+    checkpointer = Checkpointer(args)
 
     # Start training
     global_progress = tqdm(range(0, args.train.stop_at_epoch), desc='Training')
@@ -80,24 +79,7 @@ def main(device, args):
         }
         global_progress.set_postfix(epoch_dict)
         logger.update_scalers(epoch_dict)
-
-    # Save checkpoint
-    model_file_name = f"{args.name}_{datetime.now().strftime('%m%d%H%M%S')}.pt"
-    model_path = os.path.join(args.ckpt_dir, model_file_name)
-    torch.save(
-        {
-            'epoch': epoch + 1,
-            'full_model': args.model.name,            
-            'full_model_state_dict': model.module.state_dict(),  # entire simsiam model
-            'backbone': args.model.backbone,
-            'backbone_state_dict': model.module.backbone.state_dict(),  # backbone model
-        },
-        model_path,
-    )
-    print(f"Model saved to {model_path}")
-    with open(os.path.join(args.log_dir, f"checkpoint_path.txt"), 'w+') as file:
-        file.write(f'{model_path}')
-
+        checkpointer.save(epoch, model)
 
 
 
