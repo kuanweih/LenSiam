@@ -9,8 +9,8 @@ model:
   backbone: vit-base
   # backbone: resnet50
   proj_layers: 3
-  load_trained_weights: True
-  trained_weights_path: C:\Users\abcd2\GitHub\simsiam_vit_lensing\.cache\simsiam-lensing-dev_0327074036.pt
+  load_trained_weights: False
+  trained_weights_path: C:\cache\simsiam-lensing-dev_0327074036.pt
 
 train:
   optimizer: 
@@ -26,6 +26,7 @@ train:
   stop_at_epoch: 2 # has to be smaller than num_epochs
   ####################
   batch_size: 4
+  n_epoch_ckpt: 2 # save checkpoint every n_epoch_ckpt epochs
 
 logger:
   matplotlib: True

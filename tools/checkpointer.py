@@ -9,12 +9,14 @@ class Checkpointer:
     def __init__(self, args):
         self.args = args
 
-    def save(self, epoch, model):
-        model_file_name = f"{self.args.name}_{datetime.now().strftime('%m%d%H%M%S')}.pt"
+    def save(self, epoch, model, loss):
+        timestamp = datetime.now().strftime('%m%d%H%M%S')
+        model_file_name = f"{self.args.name}_{timestamp}_loss_{loss:.4f}.pt"
         model_path = os.path.join(self.args.ckpt_dir, model_file_name)
         torch.save(
             {
                 'epoch': epoch + 1,
+                'loss': loss,
                 'full_model': self.args.model.name,            
                 'full_model_state_dict': model.module.state_dict(),  # entire simsiam model
                 'backbone': self.args.model.backbone,

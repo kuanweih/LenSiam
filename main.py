@@ -46,8 +46,9 @@ def main(device, args):
         matplotlib=args.logger.matplotlib,
     )
     checkpointer = Checkpointer(args)
+    lowest_loss = float("inf")  # to identify model with the lowest loss
 
-    # Start training
+    # start training
     global_progress = tqdm(range(0, args.train.stop_at_epoch), desc='Training')
     for epoch in global_progress:
         model.train()
@@ -73,14 +74,20 @@ def main(device, args):
             local_progress.set_postfix(data_dict)
             logger.update_scalers(data_dict)
 
+            if loss.item() < lowest_loss:
+                lowest_loss = loss.item()
+                checkpointer.save(epoch, model, loss.item())
+        
+        # logs, plots, ckpts
         epoch_dict = {
             "epoch": epoch,
             "loss": loss.item(),
         }
         global_progress.set_postfix(epoch_dict)
         logger.update_scalers(epoch_dict)
-        checkpointer.save(epoch, model)
 
+        if (epoch + 1) % args.train.n_epoch_ckpt == 0:
+            checkpointer.save(epoch, model, loss.item())
 
 
 if __name__ == "__main__":
