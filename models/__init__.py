@@ -1,4 +1,6 @@
+import os
 import torch
+
 from torchvision.models import resnet50, resnet18, vit_b_16
 from .simsiam import SimSiam
 
@@ -7,7 +9,8 @@ def get_backbone(backbone, castrate=True):
     """ Get backbone model according to the argument backbone.
     Args:
         backbone (str): name of the backbone model
-        castrate (bool, optional): [description]. Defaults to True.
+        castrate (bool, optional): replace the last layer of backbone with torch.nn.Identity().
+                                   Defaults to True.
     Returns:
         torch model: the backbone model
     """
@@ -39,10 +42,21 @@ def get_model(model_cfg):
     Returns:
         torch model: the main model
     """
+    # get model
     if model_cfg.name == 'simsiam':
         model =  SimSiam(get_backbone(model_cfg.backbone))
-        if model_cfg.proj_layers is not None:
+        if model_cfg.proj_layers is not None:  # TODO do we still want this flexibility?
             model.projector.set_layers(model_cfg.proj_layers)
     else:
         raise NotImplementedError
+
+    # fill in pre-trained weights if provided
+    if model_cfg.load_trained_weights:
+        file_path = os.path.join(model_cfg.trained_weights_path)
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"{file_path} does not exist!")
+        else:
+            ckpt = torch.load(file_path)
+            assert ckpt["full_model"] == model_cfg.name  # make sure loaded model == model
+            model.load_state_dict(ckpt["full_model_state_dict"])
     return model

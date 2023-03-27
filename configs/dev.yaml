@@ -9,6 +9,8 @@ model:
   backbone: vit-base
   # backbone: resnet50
   proj_layers: 3
+  load_trained_weights: True
+  trained_weights_path: C:\Users\abcd2\GitHub\simsiam_vit_lensing\.cache\simsiam-lensing-dev_0327074036.pt
 
 train:
   optimizer: 
