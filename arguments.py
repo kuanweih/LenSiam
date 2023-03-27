@@ -48,8 +48,8 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--config-file', required=True, type=str, help="xxx.yaml")
     parser.add_argument('--data_dir', required=True, type=str, help="path/to/the/dataset")
-    parser.add_argument('--log_dir', type=str, default="./logs")
-    parser.add_argument('--ckpt_dir', type=str, default="./.cache")
+    parser.add_argument('--log_dir', type=str, default="./outputs/logs")
+    parser.add_argument('--ckpt_dir', type=str, default="./outputs/ckpts")
     parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu')
     args = parser.parse_args()
 
