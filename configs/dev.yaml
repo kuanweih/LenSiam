@@ -22,7 +22,7 @@ train:
   n_epoch_ckpt: 2 # save checkpoint every n_epoch_ckpt epochs
 
 optimizer: 
-  name: sgd
+  name: sgd  # sgd, lars
   weight_decay: 0.0005
   momentum: 0.9
 
