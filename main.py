@@ -23,11 +23,11 @@ def main(device, args):
 
     # define optimizer
     optimizer = get_optimizer(
-        args.train.optimizer.name,
+        args.optimizer.name,
         model,
         lr=args.train.base_lr*args.train.batch_size/256,
-        momentum=args.train.optimizer.momentum,
-        weight_decay=args.train.optimizer.weight_decay,
+        momentum=args.optimizer.momentum,
+        weight_decay=args.optimizer.weight_decay,
     )
 
     lr_scheduler = LR_Scheduler(
@@ -38,7 +38,7 @@ def main(device, args):
         args.train.base_lr * args.train.batch_size / 256,
         args.train.final_lr * args.train.batch_size / 256,
         len(train_loader),
-        constant_predictor_lr=True, # see the end of section 4.2 predictor
+        constant_predictor_lr=True,  # see the end of section 4.2 predictor
     )
 
     logger = Logger(

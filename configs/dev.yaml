@@ -1,32 +1,30 @@
-name: simsiam-lensing-dev
+name: simsiam-lensing  # name it however you like
 
 dataset:
-  name: lensing-dev
+  name: paired-lensing  # paired-lensing is currently the only name
   num_workers: 4
 
 model: 
   name: simsiam
-  backbone: vit-base
-  # backbone: resnet50
-  proj_layers: 3
-  load_trained_weights: False
-  trained_weights_path: C:\cache\simsiam-lensing-dev_0327074036.pt
+  backbone: vit-base  # vit-base, resnet50, resnet18
+  load_trained_weights: False  # flag to resume from our trained model
+  trained_weights_path: C:\cache\simsiam-lensing-dev_0327074036.pt  # provide the model path 
+  proj_layers: 3  # keep it 3 according to the original SimSiam paper
 
 train:
-  optimizer: 
-    name: sgd
-    weight_decay: 0.0005
-    momentum: 0.9
   warmup_epochs: 10
   warmup_lr: 0
   base_lr: 0.03
   final_lr: 0
-  num_epochs: 800 # this parameter influence the lr decay
-  ###################
-  stop_at_epoch: 2 # has to be smaller than num_epochs
-  ####################
   batch_size: 4
+  num_epochs: 800 # this parameter influence the lr decay
+  stop_at_epoch: 2 # has to be smaller than num_epochs
   n_epoch_ckpt: 2 # save checkpoint every n_epoch_ckpt epochs
+
+optimizer: 
+  name: sgd
+  weight_decay: 0.0005
+  momentum: 0.9
 
 logger:
   matplotlib: True
