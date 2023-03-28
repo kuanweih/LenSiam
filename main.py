@@ -22,13 +22,7 @@ def main(device, args):
     model = torch.nn.DataParallel(model)
 
     # define optimizer
-    optimizer = get_optimizer(
-        args.optimizer.name,
-        model,
-        lr=args.train.base_lr*args.train.batch_size/256,
-        momentum=args.optimizer.momentum,
-        weight_decay=args.optimizer.weight_decay,
-    )
+    optimizer = get_optimizer(model, args)
 
     lr_scheduler = LR_Scheduler(
         optimizer,
