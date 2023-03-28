@@ -45,8 +45,6 @@ def get_model(model_cfg):
     # get model
     if model_cfg.name == 'simsiam':
         model =  SimSiam(get_backbone(model_cfg.backbone))
-        if model_cfg.proj_layers is not None:  # TODO do we still want this flexibility?
-            model.projector.set_layers(model_cfg.proj_layers)
     else:
         raise NotImplementedError
 

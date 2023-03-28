@@ -9,7 +9,6 @@ model:
   backbone: vit-base  # vit-base, resnet50, resnet18
   load_trained_weights: False  # flag to resume from our trained model
   trained_weights_path: C:\cache\simsiam-lensing-dev_0327074036.pt  # provide the model path 
-  proj_layers: 3  # keep it 3 according to the original SimSiam paper
 
 train:
   warmup_epochs: 10
