@@ -11,6 +11,7 @@ from tools import Logger, Checkpointer
 
 def main(device, args):
 
+    # Load dataset
     train_loader = torch.utils.data.DataLoader(
         dataset=get_dataset(**args.dataset_kwargs),
         shuffle=True,
@@ -18,31 +19,19 @@ def main(device, args):
         **args.dataloader_kwargs,
     )
 
+    # Initialize the model, loss function, and optimizer
     model = get_model(args.model).to(device)
     model = torch.nn.DataParallel(model)
-
-    # define optimizer
     optimizer = get_optimizer(model, args)
+    lr_scheduler = LR_Scheduler(optimizer, len(train_loader), args, constant_predictor_lr=True)
+    # constant_predictor_lr=True: see the end of section 4.2 predictor
 
-    lr_scheduler = LR_Scheduler(
-        optimizer,
-        args.train.warmup_epochs,
-        args.train.warmup_lr * args.train.batch_size / 256,
-        args.train.num_epochs,
-        args.train.base_lr * args.train.batch_size / 256,
-        args.train.final_lr * args.train.batch_size / 256,
-        len(train_loader),
-        constant_predictor_lr=True,  # see the end of section 4.2 predictor
-    )
-
-    logger = Logger(
-        log_dir=args.log_dir,
-        matplotlib=args.logger.matplotlib,
-    )
+    # Initialize helper tools
+    logger = Logger(log_dir=args.log_dir, matplotlib=args.logger.matplotlib)
     checkpointer = Checkpointer(args)
     lowest_loss = float("inf")  # to identify model with the lowest loss
 
-    # start training
+    # Train the model
     global_progress = tqdm(range(0, args.train.stop_at_epoch), desc='Training')
     for epoch in global_progress:
         model.train()

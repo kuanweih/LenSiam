@@ -3,15 +3,14 @@ import numpy as np
 
 
 class LR_Scheduler:
-    def __init__(self, 
-                 optimizer, 
-                 warmup_epochs, 
-                 warmup_lr, 
-                 num_epochs, 
-                 base_lr, 
-                 final_lr, 
-                 iter_per_epoch, 
-                 constant_predictor_lr=False):
+    def __init__(self, optimizer, iter_per_epoch, args, constant_predictor_lr=False):
+        
+        warmup_epochs = args.train.warmup_epochs
+        warmup_lr = args.train.warmup_lr * args.train.batch_size / 256
+        num_epochs = args.train.num_epochs
+        base_lr = args.train.base_lr * args.train.batch_size / 256
+        final_lr = args.train.final_lr * args.train.batch_size / 256    
+
         self.base_lr = base_lr
         self.constant_predictor_lr = constant_predictor_lr
         self.optimizer = optimizer
