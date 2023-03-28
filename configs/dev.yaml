@@ -11,14 +11,15 @@ model:
   trained_weights_path: C:\cache\simsiam-lensing-dev_0327074036.pt  # provide the model path 
 
 train:
-  warmup_epochs: 10
-  warmup_lr: 0
-  base_lr: 0.03
-  final_lr: 0
   batch_size: 4
   num_epochs: 800 # this parameter influence the lr decay
   stop_at_epoch: 2 # has to be smaller than num_epochs
   n_epoch_ckpt: 2 # save checkpoint every n_epoch_ckpt epochs
+  # below are parameters for lr, keep them as default unless you want to experiment them
+  warmup_epochs: 10
+  warmup_lr: 0
+  base_lr: 0.03
+  final_lr: 0
 
 optimizer: 
   name: sgd  # sgd, lars
