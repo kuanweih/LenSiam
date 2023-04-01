@@ -16,10 +16,14 @@ class Logger:
             self.log_dir=log_dir 
         self.plotter = Plotter() if matplotlib else None
         self.counter = OrderedDict()
-
+        
     def update_scalers(self, ordered_dict):
         for key, value in ordered_dict.items():
             if isinstance(value, Tensor):
+                if value.numel() > 1:     
+                    value = value.mean()  
+                else:                     
+                    value = value         
                 ordered_dict[key] = value.item()
             if self.counter.get(key) is None:
                 self.counter[key] = 1
