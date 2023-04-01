@@ -8,10 +8,6 @@ from models import get_model
 from optimizers import get_optimizer, LR_Scheduler
 from tools import Logger, Checkpointer
 
-# Show number of GPUs in use
-num_gpus = torch.cuda.device_count()        
-print(f"Number of used GPUs: {num_gpus}")   
-
 
 def main(device, args):
 
@@ -81,7 +77,11 @@ if __name__ == "__main__":
 
     args = get_args()
     print(f"We will be using device = {args.device}!")
-
+    
+    # Show number of GPUs in use
+    num_gpus = torch.cuda.device_count()        
+    print(f"Number of used GPUs: {num_gpus}")   
+    
     main(device=args.device, args=args)
 
     # wrap up logs
