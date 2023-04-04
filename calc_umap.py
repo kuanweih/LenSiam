@@ -3,6 +3,7 @@ import torch
 import umap
 import numpy as np
 
+from collections import defaultdict
 from tqdm import tqdm
 from arguments import get_args_umap
 from datasets import get_dataset
@@ -24,18 +25,28 @@ def main(device, args):
     model.eval()
 
     # Forward pass to get the learned representation
-    representation = []
+    dict_result = defaultdict(list)
     with torch.no_grad():
         for idx, (images1, images2, labels) in enumerate(tqdm(data_loader)):
+            # Get representations
             repr1 = model.forward(images1.to(device, non_blocking=True))
             repr2 = model.forward(images2.to(device, non_blocking=True))
-            representation.extend(torch.concat([repr1, repr2]).cpu().tolist())
-    representation = np.array(representation)
+            dict_result["representation"].extend(torch.concat([repr1, repr2]).cpu().tolist())
+            # Get labels
+            for key, val in labels.items():
+                val = val.cpu().tolist()
+                dict_result[key].extend(val)
+                dict_result[key].extend(val)
+
+    # Convert list to np arrays
+    for key, val in dict_result.items():
+        dict_result[key] = np.array(val)
 
     # Calculate the UMAP embeddings and save it
-    umap_embedding = umap.UMAP().fit_transform(representation)
-    file_path = os.path.join(args.output_dir, "umap_embedding.npy")
-    np.save(file_path, umap_embedding)
+    dict_result["embeddings"] = umap.UMAP().fit_transform(dict_result["representation"])
+    del dict_result["representation"]
+    file_path = os.path.join(args.output_dir, "umap_result.npy")
+    np.save(file_path, dict_result)
 
 
 
