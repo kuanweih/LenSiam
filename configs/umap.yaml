@@ -1,0 +1,13 @@
+name: umap  # name it however you like
+
+dataset:
+  name: paired-lensing  # paired-lensing is currently the only name
+  data_dir: D:\Datasets\2023_strong_lensing_data_set\dev_set_10000  # path/to/the/dataset
+
+model: 
+  name: simsiam
+  backbone: vit-base  # vit-base, resnet50, resnet18
+  file: D:\Projects\2023_simsiam_vit_lensing\20230405_10k_eff_batch_size_400_models\simsiam-lensing_0404180708_loss_-0.8793.pt  # provide the model path 
+
+train:
+  batch_size: 20
