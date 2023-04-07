@@ -19,7 +19,7 @@ def main(device, args):
     # Load the trained backbone model
     model = get_backbone(args.model.backbone).to(device)
     model = torch.nn.DataParallel(model)
-    ckpt = torch.load(args.model.file)
+    ckpt = torch.load(args.model.file, map_location='cpu')
     assert ckpt["backbone"] == args.model.backbone  # make sure loaded model == model
     model.module.load_state_dict(ckpt["backbone_state_dict"])
     model.eval()
