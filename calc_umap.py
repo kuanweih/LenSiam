@@ -6,7 +6,7 @@ import numpy as np
 from collections import defaultdict
 from tqdm import tqdm
 from arguments import get_args_umap
-from datasets import get_dataset
+from datasets import get_dataset, get_umap_testset
 from models import get_backbone
 
 
@@ -42,11 +42,31 @@ def main(device, args):
     for key, val in dict_result.items():
         dict_result[key] = np.array(val)
 
-    # Calculate the UMAP embeddings and save it
-    dict_result["embeddings"] = umap.UMAP().fit_transform(dict_result["representation"])
+    # Calculate the UMAP embeddings and save both embeddings and reducer
+    reducer = umap.UMAP()
+    dict_result["embeddings"] = reducer.fit_transform(dict_result["representation"])
     del dict_result["representation"]
-    file_path = os.path.join(args.output_dir, "umap_result.npy")
-    np.save(file_path, dict_result)
+    np.save(os.path.join(args.output_dir, "umap_result.npy"), dict_result)
+
+    # TODO TODO
+    result = {}    
+    for key in vars(args.testsets):
+        _kwarg = vars(vars(args.testsets)[key])
+        dataset = get_umap_testset(key, **_kwarg)
+        result[key] = calc_embeddings_testset(dataset, model, args, device, reducer)
+    print(result)
+
+
+def calc_embeddings_testset(dataset, model, args, device, reducer):
+    embeddings = []
+    data_loader = torch.utils.data.DataLoader(dataset=dataset, batch_size=args.train.batch_size)
+    with torch.no_grad():
+        for images, labels in tqdm(data_loader):
+            repr = model.forward(images.to(device, non_blocking=True))
+            _embeddings = reducer.transform(repr.cpu().numpy())
+            embeddings.extend(_embeddings)
+    embeddings = np.array(embeddings)
+    return embeddings
 
 
 
@@ -56,12 +76,26 @@ if __name__ == "__main__":
     args = get_args_umap()
     print(f"We will be using device = {args.device}!")
 
+
+
     main(device=args.device, args=args)
 
     # Wrap up logs
     completed_output_dir = args.output_dir.replace('in-progress', 'completed')
     os.rename(args.output_dir, completed_output_dir)
     print(f'Output has been saved to {completed_output_dir}')
+
+
+
+
+
+
+
+    # print(data_loader)
+
+
+
+
 
 
 
