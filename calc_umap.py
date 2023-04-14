@@ -42,22 +42,34 @@ def main(device, args):
     for key, val in dict_result.items():
         dict_result[key] = np.array(val)
 
-    # Calculate the UMAP embeddings and save both embeddings and reducer
+    # Calculate the UMAP embeddings and save the embeddings for the main dataset
     reducer = umap.UMAP()
     dict_result["embeddings"] = reducer.fit_transform(dict_result["representation"])
     del dict_result["representation"]
     np.save(os.path.join(args.output_dir, "umap_result.npy"), dict_result)
 
-    # TODO TODO
+    # Use the fitted reducer to calculate UMAP embeddings for the UMAP testsets
     result = {}
     for key in vars(args.testsets):
         _kwarg = vars(vars(args.testsets)[key])
         dataset = get_umap_testset(key, **_kwarg)
         result[key] = calc_embeddings_testset(dataset, model, args, device, reducer)
-    np.save(os.path.join(args.output_dir, "umap_testsets.npy"), dict_result)
+    np.save(os.path.join(args.output_dir, "umap_testsets.npy"), result)
 
 
 def calc_embeddings_testset(dataset, model, args, device, reducer):
+    """ Calculate UMAP embeddings for a given testset
+
+    Args:
+        dataset (torch.utils.data.Dataset): the test dataset for UMAP
+        model (torch model): the trained model
+        args (argparse.Namespace): args
+        device (str): args.device
+        reducer (umap.UMAP): the fitted UMAP reducer
+
+    Returns:
+        numpy.ndarray: the UMAP embeddings for the given testset
+    """
     embeddings = []
     data_loader = torch.utils.data.DataLoader(dataset=dataset, batch_size=args.train.batch_size)
     with torch.no_grad():
@@ -76,37 +88,9 @@ if __name__ == "__main__":
     args = get_args_umap()
     print(f"We will be using device = {args.device}!")
 
-
-
     main(device=args.device, args=args)
 
     # Wrap up logs
     completed_output_dir = args.output_dir.replace('in-progress', 'completed')
     os.rename(args.output_dir, completed_output_dir)
     print(f'Output has been saved to {completed_output_dir}')
-
-
-
-
-
-
-
-    # print(data_loader)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
