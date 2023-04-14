@@ -1,10 +1,9 @@
 import torch
 import torchvision
-
+from .parameters import image_size, imagenet_mean_std
+ 
 
 def get_stl10(root, split, subset_size=None):
-    image_size = 224
-    imagenet_mean_std = [[0.485, 0.456, 0.406], [0.229, 0.224, 0.225]]
     transform = torchvision.transforms.Compose([
         torchvision.transforms.ToTensor(),
         torchvision.transforms.Resize(image_size),
@@ -14,4 +13,3 @@ def get_stl10(root, split, subset_size=None):
     if subset_size is not None:
         dataset = torch.utils.data.Subset(dataset, list(range(subset_size)))
     return dataset
-
