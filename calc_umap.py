@@ -49,12 +49,12 @@ def main(device, args):
     np.save(os.path.join(args.output_dir, "umap_result.npy"), dict_result)
 
     # TODO TODO
-    result = {}    
+    result = {}
     for key in vars(args.testsets):
         _kwarg = vars(vars(args.testsets)[key])
         dataset = get_umap_testset(key, **_kwarg)
         result[key] = calc_embeddings_testset(dataset, model, args, device, reducer)
-    print(result)
+    np.save(os.path.join(args.output_dir, "umap_testsets.npy"), dict_result)
 
 
 def calc_embeddings_testset(dataset, model, args, device, reducer):
