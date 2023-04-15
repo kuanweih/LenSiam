@@ -43,7 +43,7 @@ def main(device, args):
         dict_result[key] = np.array(val)
 
     # Calculate the UMAP embeddings and save the embeddings for the main dataset
-    reducer = umap.UMAP()
+    reducer = umap.UMAP(n_neighbors=args.umap.n_neighbors)
     dict_result["embeddings"] = reducer.fit_transform(dict_result["representation"])
     del dict_result["representation"]
     np.save(os.path.join(args.output_dir, "umap_result.npy"), dict_result)

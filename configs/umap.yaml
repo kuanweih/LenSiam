@@ -1,5 +1,8 @@
 name: umap  # name it however you like
 
+umap:
+  n_neighbors: 15  # default to 15
+
 dataset:
   name: paired-lensing  # paired-lensing is currently the only name
   data_dir: D:\Datasets\2023_strong_lensing_data_set\dev_set_10000  # path/to/the/dataset
