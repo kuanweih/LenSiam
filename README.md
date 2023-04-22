@@ -7,7 +7,7 @@ Create conda env:  ```. conda_env_setup.sh```
 
 To train Simsiam models, run  
 ```
-python  main.py  --data_dir  path/to/your/dataset  -c  configs/dev.yaml
+python  main.py  --data_dir  path/to/your/dataset  -c  configs/train.yaml
 ```
 
 
