@@ -1,7 +1,7 @@
 import os
 import torch
 
-from torchvision.models import resnet152, resnet50, resnet18, vit_b_16
+from torchvision.models import resnet152, resnet101, resnet50, resnet18, vit_b_16
 from .simsiam import SimSiam
 
 
@@ -18,6 +18,8 @@ def get_backbone(backbone, castrate=True):
         backbone_model = resnet18()
     elif backbone == 'resnet50':
         backbone_model = resnet50()
+    elif backbone == 'resnet101':
+        backbone_model = resnet101()
     elif backbone == 'resnet152':
         backbone_model = resnet152()
     elif backbone == 'vit-base':
@@ -26,7 +28,7 @@ def get_backbone(backbone, castrate=True):
         raise NotImplementedError
 
     if castrate:
-        if backbone in ["resnet18", "resnet50"]:
+        if backbone in ["resnet18", "resnet50", "resnet101", "resnet152"]:
             backbone_model.output_dim = backbone_model.fc.in_features
             backbone_model.fc = torch.nn.Identity()
         elif backbone in ["vit-base"]:
