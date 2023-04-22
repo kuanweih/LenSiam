@@ -13,5 +13,5 @@ python  main.py  --data_dir  path/to/your/dataset  -c  configs/dev.yaml
 
 To calculate UMAP embeddings, run
 ```
-python  calc_umap.py  -c  configs/dev_umap.yaml
+python  calc_umap.py  -c  configs/umap.yaml
 ```
