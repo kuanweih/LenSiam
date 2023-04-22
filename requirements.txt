@@ -3,3 +3,4 @@ pyyaml
 matplotlib
 astropy
 transformers
+umap-learn

@@ -1,12 +1,16 @@
 import glob
 import os
 import numpy as np
+
 from astropy.io import fits
 from torch.utils.data import Dataset
 from torchvision import transforms
 
+from .parameters import image_size, imagenet_mean_std
 
-parameters = ['theta_E', 'e1', 'e2', 'center_x', 'center_y', 'gamma', 'gamma1', 'gamma2']
+
+target_keys = ['theta_E', 'e1', 'e2', 'center_x', 'center_y', 'gamma', 'gamma1', 'gamma2']
+
 
 def load_fits_file(file_path):
     """ Helper function to load fits file
@@ -19,7 +23,7 @@ def load_fits_file(file_path):
     with fits.open(file_path, memmap=False) as hdul:
         data = hdul[0].data.astype(np.float32)
         param = {}
-        for key in parameters:
+        for key in target_keys:
             param[key] = hdul[0].header[key]
     return data, param
 
@@ -28,8 +32,6 @@ class LensingImageTransform():
     """ Pytorch transform class for a single image.
     """
     def __init__(self):
-        image_size = 224
-        imagenet_mean_std = [[0.485, 0.456, 0.406], [0.229, 0.224, 0.225]]
         self.transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Resize(image_size),

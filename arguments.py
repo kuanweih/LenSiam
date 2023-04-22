@@ -41,7 +41,7 @@ def set_deterministic(seed):
         torch.backends.cudnn.benchmark = False 
 
 def get_args():
-    """ Get arguments.
+    """ Get arguments for main.py.
     Returns:
         argparse.Namespace: arguments
     """
@@ -82,4 +82,33 @@ def get_args():
         'num_workers': args.dataset.num_workers,
     }
 
+    return args
+
+
+def get_args_umap():
+    """ Get arguments for umap.py.
+    Returns:
+        argparse.Namespace: arguments
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--config-file', required=True, type=str, help="xxx.yaml")
+    parser.add_argument('--output_dir', type=str, default="./outputs_umap")
+    parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu')
+    args = parser.parse_args()
+
+    # load config yaml to args
+    with open(args.config_file, 'r') as f:
+        for key, value in Namespace(yaml.load(f, Loader=yaml.FullLoader)).__dict__.items():
+            vars(args)[key] = value
+
+    # make sure the following arg values
+    args.model.file = os.path.join(args.model.file)
+    assert os.path.exists(args.model.file)
+    assert not None in [args.output_dir, args.name]
+
+    # create output folders and files
+    args.output_dir = os.path.join(
+        args.output_dir, f"in-progress_{datetime.now().strftime('%m%d%H%M%S')}_{args.name}")
+    os.makedirs(args.output_dir, exist_ok=False)
+    shutil.copy2(args.config_file, args.output_dir)
     return args
