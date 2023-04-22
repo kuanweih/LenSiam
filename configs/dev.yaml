@@ -6,7 +6,7 @@ dataset:
 
 model: 
   name: simsiam
-  backbone: vit-base  # vit-base, resnet50, resnet18
+  backbone: vit-base  # vit-base, resnet152, resnet50, resnet18
   load_trained_weights: False  # flag to resume from our trained model
   trained_weights_path: C:\cache\simsiam-lensing-dev_0327074036.pt  # provide the model path 
 
