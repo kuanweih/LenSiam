@@ -42,43 +42,53 @@ def main(device, args):
     for key, val in dict_result.items():
         dict_result[key] = np.array(val)
 
-    # Calculate the UMAP embeddings and save the embeddings for the main dataset
-    reducer = umap.UMAP(n_neighbors=args.umap.n_neighbors)
-    dict_result["embeddings"] = reducer.fit_transform(dict_result["representation"])
-    del dict_result["representation"]
-    np.save(os.path.join(args.output_dir, "umap_result.npy"), dict_result)
-
     # Use the fitted reducer to calculate UMAP embeddings for the UMAP testsets
-    result = {}
+    dict_testset_repr = {}
     for key in vars(args.testsets):
         _kwarg = vars(vars(args.testsets)[key])
         dataset = get_umap_testset(key, **_kwarg)
-        result[key] = calc_embeddings_testset(dataset, model, args, device, reducer)
+        dict_testset_repr[key] = calc_representations_testset(dataset, model, args, device)
+
+    # Fit the UMAP reducer using all data points (main + testsets)
+    reducer = umap.UMAP(n_neighbors=args.umap.n_neighbors)
+    data = np.concatenate(
+        [dict_result["representation"]] + [dict_testset_repr[key] for key in dict_testset_repr])
+    reducer.fit(data)
+    del data
+
+    # Calculate the UMAP embeddings for main dataset
+    dict_result["embeddings"] = reducer.transform(dict_result["representation"])
+    del dict_result["representation"]
+    np.save(os.path.join(args.output_dir, "umap_result.npy"), dict_result)
+
+    # Calculate the UMAP embeddings for all testsets
+    result = {}
+    for key, representation in dict_testset_repr.items():
+        result[key] = reducer.transform(representation)
+    del dict_testset_repr
     np.save(os.path.join(args.output_dir, "umap_testsets.npy"), result)
 
 
-def calc_embeddings_testset(dataset, model, args, device, reducer):
-    """ Calculate UMAP embeddings for a given testset
+def calc_representations_testset(dataset, model, args, device):
+    """ Calculate representations for a given testset via forward pass to the model
 
     Args:
         dataset (torch.utils.data.Dataset): the test dataset for UMAP
         model (torch model): the trained model
         args (argparse.Namespace): args
         device (str): args.device
-        reducer (umap.UMAP): the fitted UMAP reducer
 
     Returns:
-        numpy.ndarray: the UMAP embeddings for the given testset
+        numpy.ndarray: the representations for the given testset
     """
-    embeddings = []
+    representations = []
     data_loader = torch.utils.data.DataLoader(dataset=dataset, batch_size=args.train.batch_size)
     with torch.no_grad():
         for images, labels in tqdm(data_loader):
             repr = model.forward(images.to(device, non_blocking=True))
-            _embeddings = reducer.transform(repr.cpu().numpy())
-            embeddings.extend(_embeddings)
-    embeddings = np.array(embeddings)
-    return embeddings
+            representations.extend(repr.cpu().tolist())
+    representations = np.array(representations)
+    return representations
 
 
 
