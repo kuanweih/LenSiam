@@ -24,6 +24,7 @@ def get_2022_lens_geoff(root, subset_size=None):
     transform = torchvision.transforms.Compose([
         torchvision.transforms.ToTensor(),
         torchvision.transforms.Resize(image_size),
+        torchvision.transforms.Lambda(lambda x: (x - x.min()) / (x.max() - x.min())),  # normalized pixel values in [0, 1]
         torchvision.transforms.Lambda(lambda x: x.repeat(3, 1, 1)),  # grayscale -> RGB
         torchvision.transforms.Normalize(*imagenet_mean_std),
     ])
