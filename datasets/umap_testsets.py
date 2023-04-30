@@ -21,17 +21,35 @@ def get_stl10(root, split, subset_size=None):
 
 
 def get_2022_lens_geoff(root, subset_size=None):
-    transform = torchvision.transforms.Compose([
-        torchvision.transforms.ToTensor(),
-        torchvision.transforms.Resize(image_size),
-        torchvision.transforms.Lambda(lambda x: (x - x.min()) / (x.max() - x.min())),  # normalized pixel values in [0, 1]
-        torchvision.transforms.Lambda(lambda x: x.repeat(3, 1, 1)),  # grayscale -> RGB
-        torchvision.transforms.Normalize(*imagenet_mean_std),
-    ])
+    transform = CommonLensingTransform()
     dataset = DeepLenstronomyDataset(root=root, transform=transform)
     if subset_size is not None:
         dataset = torch.utils.data.Subset(dataset, list(range(subset_size)))
     return dataset
+
+
+def get_real_hst(root, subset_size=None, suffix=None):
+    transform = CommonLensingTransform()
+    dataset = RealHSTDataset(root=root, transform=transform, suffix=suffix)
+    if subset_size is not None:
+        dataset = torch.utils.data.Subset(dataset, list(range(subset_size)))
+    return dataset
+
+
+class CommonLensingTransform():
+    """ Pytorch transform class for a single image.
+    """
+    def __init__(self):
+        self.transform = torchvision.transforms.Compose([
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Resize((image_size, image_size)),
+            torchvision.transforms.Lambda(
+                lambda x:(x - x.min()) / (x.max() - x.min())),  # normalized pixel values in [0, 1]
+            torchvision.transforms.Lambda(lambda x: x.repeat(3, 1, 1)),  # grayscale -> RGB
+            torchvision.transforms.Normalize(*imagenet_mean_std),
+        ])
+    def __call__(self, x):
+        return self.transform(x)
 
 
 class DeepLenstronomyDataset(Dataset):
@@ -58,6 +76,40 @@ class DeepLenstronomyDataset(Dataset):
         image = self.transform(image)
         fake_label = torch.zeros(image.shape[0], 1)  # None because we don't care about labels
         return image, fake_label
-        
+
+    def __len__(self):
+        return self.size
+
+
+class RealHSTDataset(Dataset):
+    """ The RealHSTDataset class for data downloaded and processed by
+        https://github.com/kuanweih/lensed_quasar_database_scraper
+
+    Args:
+        Dataset: torch.utils.data.Dataset class
+    """
+    def __init__(self, root, transform=None, suffix=None):
+        """ Initialize the class.
+
+        Args:
+            root (str): dir of the dataset
+            transform (torchvision.transforms, optional): transforms for images. Defaults to None.
+            suffix (str, optional): suffix of the file names to be loaded. Defaults to None.
+                                    Usually suffix = 'cutout' will be used for good cutout images.
+        """
+        self.root = root
+        self.transform = transform
+        pattern = "*.npy" if suffix is None else f"*{suffix}.npy"
+        self.file_names = glob.glob(os.path.join(self.root, pattern))
+        self.size = len(self.file_names)
+
+    def __getitem__(self, index):
+        if index >= self.size:
+            raise Exception
+        image = np.load(self.file_names[index]).astype("float32")
+        image = self.transform(image)
+        fake_label = torch.zeros(image.shape[0], 1)  # None because we don't care about labels
+        return image, fake_label
+
     def __len__(self):
         return self.size
