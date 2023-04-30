@@ -13,7 +13,7 @@ from models import get_backbone
 def main(device, args):
 
     # Load dataset
-    dataset = get_dataset(args.dataset.name, args.dataset.data_dir)
+    dataset = get_dataset(args.dataset.name, args.dataset.data_dir, args.dataset.subset_size)
     data_loader = torch.utils.data.DataLoader(dataset=dataset, batch_size=args.train.batch_size)
 
     # Load the trained backbone model
@@ -27,7 +27,7 @@ def main(device, args):
     # Forward pass to get the learned representation
     dict_result = defaultdict(list)
     with torch.no_grad():
-        for idx, (images1, images2, labels) in enumerate(tqdm(data_loader)):
+        for idx, (images1, images2, labels) in enumerate(tqdm(data_loader, desc="Train Set")):
             # Get representations
             repr1 = model.forward(images1.to(device, non_blocking=True))
             repr2 = model.forward(images2.to(device, non_blocking=True))
@@ -47,7 +47,7 @@ def main(device, args):
     for key in vars(args.testsets):
         _kwarg = vars(vars(args.testsets)[key])
         dataset = get_umap_testset(key, **_kwarg)
-        dict_testset_repr[key] = calc_representations_testset(dataset, model, args, device)
+        dict_testset_repr[key] = calc_representations_testset(dataset, model, args, device, key)
 
     # Fit the UMAP reducer using all data points (main + testsets)
     reducer = umap.UMAP(n_neighbors=args.umap.n_neighbors)
@@ -69,7 +69,7 @@ def main(device, args):
     np.save(os.path.join(args.output_dir, "umap_testsets.npy"), result)
 
 
-def calc_representations_testset(dataset, model, args, device):
+def calc_representations_testset(dataset, model, args, device, name):
     """ Calculate representations for a given testset via forward pass to the model
 
     Args:
@@ -77,6 +77,7 @@ def calc_representations_testset(dataset, model, args, device):
         model (torch model): the trained model
         args (argparse.Namespace): args
         device (str): args.device
+        name (str): dataset name
 
     Returns:
         numpy.ndarray: the representations for the given testset
@@ -84,7 +85,7 @@ def calc_representations_testset(dataset, model, args, device):
     representations = []
     data_loader = torch.utils.data.DataLoader(dataset=dataset, batch_size=args.train.batch_size)
     with torch.no_grad():
-        for images, labels in tqdm(data_loader):
+        for images, labels in tqdm(data_loader, desc=name):
             repr = model.forward(images.to(device, non_blocking=True))
             representations.extend(repr.cpu().tolist())
     representations = np.array(representations)
