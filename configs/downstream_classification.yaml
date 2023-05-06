@@ -1,12 +1,8 @@
-name: umap  # name it however you like
 
-umap:
-  n_neighbors: 15  # default to 15
-
-dataset:
-  name: paired-lensing  # paired-lensing is currently the only name
-  data_dir: D:\Datasets\2023_strong_lensing_data_set\data_set  # path/to/the/dataset
-  subset_size: null
+# dataset:
+#   name: paired-lensing  # paired-lensing is currently the only name
+#   data_dir: D:\Datasets\2023_strong_lensing_data_set\data_set  # path/to/the/dataset
+#   subset_size: null
 
 model: 
   name: simsiam
@@ -16,15 +12,3 @@ model:
 train:
   batch_size: 20
 
-testsets:
-  STL10:
-    root: D:\Datasets
-    split: unlabeled
-    subset_size: 1000
-  Lens2022:
-    root: D:\Datasets\2022_icml_lens_sim\geoff_1200
-    subset_size: 1000
-  RealHST:
-    root: D:\Datasets\2023_hst_lensed_quasars\npy_files
-    suffix: cutout
-    subset_size: null

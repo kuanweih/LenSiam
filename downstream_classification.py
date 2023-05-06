@@ -3,6 +3,13 @@ import torch
 import umap
 import numpy as np
 
+import torch.nn as nn
+
+import yaml
+import shutil
+import argparse
+
+
 from collections import defaultdict
 from tqdm import tqdm
 from arguments import get_args_umap
@@ -10,37 +17,45 @@ from datasets import get_dataset, get_umap_testset
 from models import get_backbone
 
 
-def main(device, args):
+# # TODO mv
+# # Binary Classification Model
+# class BinaryClassifier(nn.Module):
+
+#     def __init__(self, input_size, output_size):
+
+#         # output_size = 2. 0: not lens. 1: lens.
+
+#         super(BinaryClassifier, self).__init__()
+#         self.fc = nn.Linear(input_size, output_size)
+#         self.sigmoid = nn.Sigmoid()
+
+#     def forward(self, x):
+#         x = self.fc(x)
+#         x = self.sigmoid(x)
+#         return x
+
+
+def main(device, config):
 
     # # Load dataset
     # dataset = get_dataset(args.dataset.name, args.dataset.data_dir, args.dataset.subset_size)
     # data_loader = torch.utils.data.DataLoader(dataset=dataset, batch_size=args.train.batch_size)
 
-
-
-
-
     # Load the trained backbone model
-    model = get_backbone(args.model.backbone).to(device)
-    
+    model = get_backbone(config["model"]["backbone"]).to(device)
+    ckpt = torch.load(config["model"]["file"], map_location='cpu')
+    assert ckpt["backbone"] == config["model"]["backbone"]  # make sure loaded model == model
+    model.load_state_dict(ckpt["backbone_state_dict"])
 
 
-    # # Binary Classification Model
-    # class BinaryClassifier(nn.Module):
-    #     def __init__(self, input_size, hidden_size, output_size):
-    #         super(BinaryClassifier, self).__init__()
-    #         self.fc1 = nn.Linear(input_size, hidden_size)
-    #         self.relu = nn.ReLU()
-    #         self.fc2 = nn.Linear(hidden_size, output_size)
-    #         self.sigmoid = nn.Sigmoid()
+    print(model.encoder.ln)
 
-    #     def forward(self, x):
-    #         x = self.fc1(x)
-    #         x = self.relu(x)
-    #         x = self.fc2(x)
-    #         x = self.sigmoid(x)
-    #         return x
+    model.heads = nn.Sequential(
+        nn.Linear(768, 2),  # output_size = 2. 0: not lens. 1: lens.
+        nn.Sigmoid(),
+    )
 
+    print(model.heads)
 
     
     # model = torch.nn.DataParallel(model)
@@ -48,10 +63,6 @@ def main(device, args):
 
 
 
-#     ckpt = torch.load(args.model.file, map_location='cpu')
-#     assert ckpt["backbone"] == args.model.backbone  # make sure loaded model == model
-#     model.module.load_state_dict(ckpt["backbone_state_dict"])
-#     model.eval()
 
 #     criterion = nn.BCELoss()
 #     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
@@ -145,12 +156,21 @@ def main(device, args):
 
 if __name__ == "__main__":
 
-    args = get_args_umap()
+    # Get arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--config-file', required=True, type=str, help="xxx.yaml")
+    parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu')
+    args = parser.parse_args()
+
+    # Load config
+    with open(args.config_file) as file:
+        config = yaml.safe_load(file)
+
     print(f"We will be using device = {args.device}!")
 
-    main(device=args.device, args=args)
+    main(device=args.device, config=config)
 
-    # Wrap up logs
-    completed_output_dir = args.output_dir.replace('in-progress', 'completed')
-    os.rename(args.output_dir, completed_output_dir)
-    print(f'Output has been saved to {completed_output_dir}')
+    # # Wrap up logs
+    # completed_output_dir = args.output_dir.replace('in-progress', 'completed')
+    # os.rename(args.output_dir, completed_output_dir)
+    # print(f'Output has been saved to {completed_output_dir}')
