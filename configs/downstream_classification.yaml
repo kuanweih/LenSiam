@@ -1,8 +1,7 @@
 
-# dataset:
-#   name: paired-lensing  # paired-lensing is currently the only name
-#   data_dir: D:\Datasets\2023_strong_lensing_data_set\data_set  # path/to/the/dataset
-#   subset_size: null
+dataset:  # hst x zoo
+  data_dir: D:\Datasets\2023_hst_x_zoo_class  # path/to/the/dataset
+  subset_size: null  # optional
 
 model: 
   name: simsiam
