@@ -17,6 +17,8 @@ from datasets import get_dataset, get_umap_testset
 from models import get_backbone
 
 
+from datasets.hst_x_zoo_dataset import get_hst_x_zoo
+
 # # TODO mv
 # # Binary Classification Model
 # class BinaryClassifier(nn.Module):
@@ -37,9 +39,18 @@ from models import get_backbone
 
 def main(device, config):
 
-    # # Load dataset
-    # dataset = get_dataset(args.dataset.name, args.dataset.data_dir, args.dataset.subset_size)
-    # data_loader = torch.utils.data.DataLoader(dataset=dataset, batch_size=args.train.batch_size)
+    # Load dataset
+    dataset = get_hst_x_zoo(
+        config["dataset"]["data_dir"],
+        subset_size=config["dataset"]["subset_size"],
+    )
+    data_loader = torch.utils.data.DataLoader(
+        dataset=dataset,
+        shuffle=True,
+        batch_size=config["train"]["batch_size"],
+    )
+
+    # TODO still need to split train and test sets
 
     # Load the trained backbone model
     model = get_backbone(config["model"]["backbone"]).to(device)
