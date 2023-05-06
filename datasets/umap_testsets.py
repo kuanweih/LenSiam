@@ -4,6 +4,7 @@ import torch
 import torchvision
 import numpy as np
 
+from PIL import Image
 from torch.utils.data import Dataset
 from .parameters import image_size, imagenet_mean_std
 
@@ -36,6 +37,19 @@ def get_real_hst(root, subset_size=None, suffix=None):
     return dataset
 
 
+def get_galaxy_zoo(root, subset_size=None):
+    transform = torchvision.transforms.Compose([
+        torchvision.transforms.ToTensor(),
+        torchvision.transforms.Lambda(
+            lambda x: x / 255.),  # normalize pixel values from [0, 255] to [0, 1]
+        torchvision.transforms.Normalize(*imagenet_mean_std),
+    ])
+    dataset = GalaxyZooDataset(root=root, transform=transform)
+    if subset_size is not None:
+        dataset = torch.utils.data.Subset(dataset, list(range(subset_size)))
+    return dataset
+
+
 class CommonLensingTransform():
     """ Pytorch transform class for a single image.
     """
@@ -44,7 +58,7 @@ class CommonLensingTransform():
             torchvision.transforms.ToTensor(),
             torchvision.transforms.Resize((image_size, image_size)),
             torchvision.transforms.Lambda(
-                lambda x:(x - x.min()) / (x.max() - x.min())),  # normalized pixel values in [0, 1]
+                lambda x:(x - x.min()) / (x.max() - x.min())),  # normalize pixel values in [0, 1]
             torchvision.transforms.Lambda(lambda x: x.repeat(3, 1, 1)),  # grayscale -> RGB
             torchvision.transforms.Normalize(*imagenet_mean_std),
         ])
@@ -107,6 +121,39 @@ class RealHSTDataset(Dataset):
         if index >= self.size:
             raise Exception
         image = np.load(self.file_names[index]).astype("float32")
+        image = self.transform(image)
+        fake_label = torch.zeros(image.shape[0], 1)  # None because we don't care about labels
+        return image, fake_label
+
+    def __len__(self):
+        return self.size
+
+
+class GalaxyZooDataset(Dataset):
+    """ The GalaxyZooDataset class for data downloaded from
+        https://www.kaggle.com/competitions/galaxy-zoo-the-galaxy-challenge/overview
+
+    Args:
+        Dataset: torch.utils.data.Dataset class
+    """
+    def __init__(self, root, transform=None):
+        """ Initialize the class.
+
+        Args:
+            root (str): dir of the dataset
+            transform (torchvision.transforms, optional): transforms for images. Defaults to None.
+        """
+        self.root = root
+        self.transform = transform
+        self.file_names = glob.glob(os.path.join(self.root, "*.jpg"))
+        self.size = len(self.file_names)
+
+    def __getitem__(self, index):
+        if index >= self.size:
+            raise Exception
+        image = Image.open(self.file_names[index])
+        image = image.resize((image_size, image_size))
+        image = np.array(image).astype("float32")
         image = self.transform(image)
         fake_label = torch.zeros(image.shape[0], 1)  # None because we don't care about labels
         return image, fake_label

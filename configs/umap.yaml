@@ -6,7 +6,7 @@ umap:
 dataset:
   name: paired-lensing  # paired-lensing is currently the only name
   data_dir: D:\Datasets\2023_strong_lensing_data_set\data_set  # path/to/the/dataset
-  subset_size: null
+  subset_size: 10000
 
 model: 
   name: simsiam
@@ -20,11 +20,14 @@ testsets:
   STL10:
     root: D:\Datasets
     split: unlabeled
-    subset_size: 1000
+    subset_size: 200
   Lens2022:
     root: D:\Datasets\2022_icml_lens_sim\geoff_1200
-    subset_size: 1000
+    subset_size: 200
   RealHST:
     root: D:\Datasets\2023_hst_lensed_quasars\npy_files
-    suffix: cutout
+    suffix: cutout  # cutout or null. specify only *cutout.npy or *.npy.
     subset_size: null
+  GalaxyZoo:
+    root: D:\Datasets\galaxy-zoo-the-galaxy-challenge\images_training_rev1\images_training_rev1
+    subset_size: 200

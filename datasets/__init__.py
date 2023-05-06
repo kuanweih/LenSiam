@@ -1,7 +1,7 @@
 import torch
 
 from .paired_lensing_dataset import PairedLensingImageDataset
-from .umap_testsets import get_stl10, get_2022_lens_geoff, get_real_hst
+from .umap_testsets import get_stl10, get_2022_lens_geoff, get_real_hst, get_galaxy_zoo
 
 
 def get_dataset(dataset_name, data_dir, subset_size=None):
@@ -21,6 +21,8 @@ def get_umap_testset(dataset_name, **kwarg):
         dataset = get_2022_lens_geoff(**kwarg)
     elif dataset_name == 'RealHST':
         dataset = get_real_hst(**kwarg)
+    elif dataset_name == 'GalaxyZoo':
+        dataset = get_galaxy_zoo(**kwarg)
     else:
         raise NotImplementedError
     return dataset
