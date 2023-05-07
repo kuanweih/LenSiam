@@ -32,13 +32,6 @@ def main(device, config):
     )
 
     # TODO still need to split train and test sets
-    # TODO use BCEWithLogitsLoss with pos_weight for weighted loss
-    # >>> target = torch.ones([10, 64], dtype=torch.float32)  # 64 classes, batch size = 10
-    # >>> output = torch.full([10, 64], 1.5)  # A prediction (logit)
-    # >>> pos_weight = torch.ones([64])  # All weights are equal to 1
-    # >>> criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
-    # >>> criterion(output, target)  # -log(sigmoid(1.5))
-    # tensor(0.20...)
 
     # Load the trained backbone model
     model = get_backbone(config["model"]["backbone"]).to(device)
@@ -47,38 +40,20 @@ def main(device, config):
     model.load_state_dict(ckpt["backbone_state_dict"])
 
 
-    print(model.encoder.ln)
+    print(model.encoder.ln)  # TODO parameterize 768 below
 
     model.heads = nn.Sequential(
         nn.Linear(768, 2),  # output_size = 2. 0: not lens. 1: lens.
-        nn.Sigmoid(),
-    )
+        # nn.Sigmoid(),  # Use BCEWithLogitsLoss so no need for sigmoid here
+    )    
+    model = torch.nn.DataParallel(model)
 
-    print(model.heads)
+    learning_rate = 0.001  # TODO parameterize it
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-    
-    # model = torch.nn.DataParallel(model)
-
-
-
-
-
-#     criterion = nn.BCELoss()
-#     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    pos_weight = 1. / torch.Tensor([61578, 119])  # TODO parameterize it
+    pos_weight = pos_weight / pos_weight.sum()
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
 
 
