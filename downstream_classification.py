@@ -1,6 +1,5 @@
 import os
 import torch
-import umap
 import numpy as np
 
 import torch.nn as nn
@@ -10,31 +9,13 @@ import shutil
 import argparse
 
 
-from collections import defaultdict
 from tqdm import tqdm
-from arguments import get_args_umap
-from datasets import get_dataset, get_umap_testset
 from models import get_backbone
 
 
 from datasets.hst_x_zoo_dataset import get_hst_x_zoo
 
-# # TODO mv
-# # Binary Classification Model
-# class BinaryClassifier(nn.Module):
 
-#     def __init__(self, input_size, output_size):
-
-#         # output_size = 2. 0: not lens. 1: lens.
-
-#         super(BinaryClassifier, self).__init__()
-#         self.fc = nn.Linear(input_size, output_size)
-#         self.sigmoid = nn.Sigmoid()
-
-#     def forward(self, x):
-#         x = self.fc(x)
-#         x = self.sigmoid(x)
-#         return x
 
 
 def main(device, config):
@@ -51,6 +32,13 @@ def main(device, config):
     )
 
     # TODO still need to split train and test sets
+    # TODO use BCEWithLogitsLoss with pos_weight for weighted loss
+    # >>> target = torch.ones([10, 64], dtype=torch.float32)  # 64 classes, batch size = 10
+    # >>> output = torch.full([10, 64], 1.5)  # A prediction (logit)
+    # >>> pos_weight = torch.ones([64])  # All weights are equal to 1
+    # >>> criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    # >>> criterion(output, target)  # -log(sigmoid(1.5))
+    # tensor(0.20...)
 
     # Load the trained backbone model
     model = get_backbone(config["model"]["backbone"]).to(device)
