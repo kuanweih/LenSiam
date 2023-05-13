@@ -41,12 +41,14 @@ class HSTxZOODataset(Dataset):
         self.transform = transform
         self.class_map = {"zoo" : 0, "hst": 1}
         self.data = []
+        self.class_size = {"zoo": 0, "hst": 0}  # Keep track of the number of images per class
         for class_path in glob.glob(os.path.join(self.root, "*")):
             if not os.path.isdir(class_path):
                 continue
             class_name = os.path.basename(class_path)
             for img_path in glob.glob(os.path.join(class_path, "*.jpg")):
                 self.data.append([img_path, class_name])
+                self.class_size[class_name] += 1  # Increase the count of the class
         self.size = len(self.data)
 
     def __getitem__(self, index):
@@ -58,8 +60,13 @@ class HSTxZOODataset(Dataset):
         image = np.array(image).astype("float32")
         image = self.transform(image)
         class_id = self.class_map[class_name]
-        class_id = torch.Tensor([class_id])
+        class_id = torch.tensor(class_id)
+        class_id = torch.nn.functional.one_hot(class_id, num_classes = 2)
+        # class_id = torch.tensor(class_id, dtype=torch.long)
         return image, class_id
 
     def __len__(self):
         return self.size
+
+    def get_class_size(self, class_name):
+        return self.class_size.get(class_name, 0)

@@ -1,13 +1,18 @@
 
 dataset:  # hst x zoo
-  data_dir: D:\Datasets\2023_hst_x_zoo_class  # path/to/the/dataset
+  data_dir: /Users/chang.1750/Documents/Projects/2023/Datasets/2023_hst_x_zoo_class   # path/to/the/dataset
   subset_size: null  # optional
 
 model: 
   name: simsiam
   backbone: vit-base  # vit-base, resnet50, resnet18
-  file: D:\Projects\2023_simsiam_vit_lensing\20230420_100k_eff_batch_size_400_models\100k_eff_batch_size_400\DP\simsiam-lensing_0411102733_loss_-0.9243.pt  # provide the model path 
+  file: /Users/chang.1750/Documents/Projects/2023/2023_simsiam_vit_lensing/simsiam_trained_models/100k_lr_0.01/DP/ViT_bsize_400/simsiam-lensing_0428121241_loss_-0.9232.pt  # provide the model path 
 
 train:
   batch_size: 20
+  learning_rate: 0.01
+  num_epochs: 1
+  train_fraction: 0.7
+  val_fraction: 0.15
 
+output_folder: /Users/chang.1750/Documents/Projects/2023/2023_simsiam_vit_lensing/simsiam_vit_lensing/outputs/downstream_cls_ckpts

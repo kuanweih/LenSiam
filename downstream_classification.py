@@ -8,13 +8,10 @@ import yaml
 import shutil
 import argparse
 
-
 from tqdm import tqdm
 from models import get_backbone
 
-
 from datasets.hst_x_zoo_dataset import get_hst_x_zoo
-
 
 
 
@@ -25,13 +22,35 @@ def main(device, config):
         config["dataset"]["data_dir"],
         subset_size=config["dataset"]["subset_size"],
     )
-    data_loader = torch.utils.data.DataLoader(
-        dataset=dataset,
-        shuffle=True,
-        batch_size=config["train"]["batch_size"],
+
+    train_size = int(config["train"]["train_fraction"] * len(dataset))  
+    val_size = int(config["train"]["val_fraction"] * len(dataset)) 
+    test_size = len(dataset) - (train_size + val_size)
+
+
+    train_dataset, val_dataset, test_dataset = torch.utils.data.random_split(
+        dataset, [train_size, val_size, test_size]
     )
 
-    # TODO still need to split train and test sets
+    # Create data loaders for train, val, and test sets
+    train_data_loader = torch.utils.data.DataLoader(
+        dataset = train_dataset,
+        shuffle = True,
+        batch_size = config["train"]["batch_size"],
+    )
+
+    val_data_loader = torch.utils.data.DataLoader(
+        dataset = val_dataset,
+        shuffle = False,
+        batch_size = config["train"]["batch_size"],    ## What is the batch size here?
+    )
+
+    test_data_loader = torch.utils.data.DataLoader(
+        dataset = test_dataset,
+        shuffle = False,
+        batch_size = config["train"]["batch_size"],    ## What is the batch size here?
+    )
+
 
     # Load the trained backbone model
     model = get_backbone(config["model"]["backbone"]).to(device)
@@ -40,90 +59,108 @@ def main(device, config):
     model.load_state_dict(ckpt["backbone_state_dict"])
 
 
-    print(model.encoder.ln)  # TODO parameterize 768 below
+    # # Freeze parameters of the pre-trained model  
+    # for param in model.parameters():
+    #     param.requires_grad = False
 
+
+    # Dimension for the last layer
+    input_dim = model.encoder.ln.normalized_shape[0]  # This will be 768 from our setting
+    output_dim = 2  # Binary classification (0: not lens. 1: lens)
+
+    # Change the last layer of the original model
     model.heads = nn.Sequential(
-        nn.Linear(768, 2),  # output_size = 2. 0: not lens. 1: lens.
+        nn.Linear(input_dim, output_dim),  
         # nn.Sigmoid(),  # Use BCEWithLogitsLoss so no need for sigmoid here
     )    
+    model = model.to(device)
     model = torch.nn.DataParallel(model)
 
-    learning_rate = 0.001  # TODO parameterize it
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-    pos_weight = 1. / torch.Tensor([61578, 119])  # TODO parameterize it
-    pos_weight = pos_weight / pos_weight.sum()
-    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    optimizer = torch.optim.Adam(model.parameters(), lr=config["train"]["learning_rate"])
 
+    # Define the loss for the binary classification with imbalanced data
+    false_class_size = dataset.get_class_size('zoo')  # 'false_class_size' and 'true_class_size' should add up to len(dataset) 
+    true_class_size = dataset.get_class_size('hst')
 
+    # pos_weight = 1. / torch.Tensor([false_class_size, true_class_size]) 
+    # pos_weight = pos_weight / pos_weight.sum()
 
+    class_counts = torch.tensor([false_class_size, true_class_size])
+    pos_weight = (len(dataset) - class_counts) / class_counts 
 
-#     # Forward pass to get the learned representation
-#     dict_result = defaultdict(list)
-#     with torch.no_grad():
-#         for idx, (images1, images2, labels) in enumerate(tqdm(data_loader, desc="Train Set")):
-#             # Get representations
-#             repr1 = model.forward(images1.to(device, non_blocking=True))
-#             repr2 = model.forward(images2.to(device, non_blocking=True))
-#             dict_result["representation"].extend(torch.concat([repr1, repr2]).cpu().tolist())
-#             # Get labels
-#             for key, val in labels.items():
-#                 val = val.cpu().tolist()
-#                 dict_result[key].extend(val)
-#                 dict_result[key].extend(val)
-
-#     # Convert list to np arrays
-#     for key, val in dict_result.items():
-#         dict_result[key] = np.array(val)
-
-#     # Use the fitted reducer to calculate UMAP embeddings for the UMAP testsets
-#     dict_testset_repr = {}
-#     for key in vars(args.testsets):
-#         _kwarg = vars(vars(args.testsets)[key])
-#         dataset = get_umap_testset(key, **_kwarg)
-#         dict_testset_repr[key] = calc_representations_testset(dataset, model, args, device, key)
-
-#     # Fit the UMAP reducer using all data points (main + testsets)
-#     reducer = umap.UMAP(n_neighbors=args.umap.n_neighbors)
-#     data = np.concatenate(
-#         [dict_result["representation"]] + [dict_testset_repr[key] for key in dict_testset_repr])
-#     reducer.fit(data)
-#     del data
-
-#     # Calculate the UMAP embeddings for main dataset
-#     dict_result["embeddings"] = reducer.transform(dict_result["representation"])
-#     del dict_result["representation"]
-#     np.save(os.path.join(args.output_dir, "umap_result.npy"), dict_result)
-
-#     # Calculate the UMAP embeddings for all testsets
-#     result = {}
-#     for key, representation in dict_testset_repr.items():
-#         result[key] = reducer.transform(representation)
-#     del dict_testset_repr
-#     np.save(os.path.join(args.output_dir, "umap_testsets.npy"), result)
+    criterion = nn.BCEWithLogitsLoss(pos_weight = pos_weight)
 
 
-# def calc_representations_testset(dataset, model, args, device, name):
-#     """ Calculate representations for a given testset via forward pass to the model
 
-#     Args:
-#         dataset (torch.utils.data.Dataset): the test dataset for UMAP
-#         model (torch model): the trained model
-#         args (argparse.Namespace): args
-#         device (str): args.device
-#         name (str): dataset name
+    global_progress = tqdm(range(0, config["train"]["num_epochs"]), desc = 'Training')
 
-#     Returns:
-#         numpy.ndarray: the representations for the given testset
-#     """
-#     representations = []
-#     data_loader = torch.utils.data.DataLoader(dataset=dataset, batch_size=args.train.batch_size)
-#     with torch.no_grad():
-#         for images, labels in tqdm(data_loader, desc=name):
-#             repr = model.forward(images.to(device, non_blocking=True))
-#             representations.extend(repr.cpu().tolist())
-#     representations = np.array(representations)
-#     return representations
+    for epoch in global_progress:
+        model.train()
+
+        local_progress = tqdm(
+                        train_data_loader,
+                        desc = f'Epoch {epoch}/{config["train"]["num_epochs"]}',
+                        )
+
+        train_loss_avg = 0
+        for _, (images, labels) in enumerate(local_progress):  
+
+            model.zero_grad()
+            
+            outputs = model.forward(
+                images.to(device, non_blocking = True),
+            )
+
+            labels = labels.float().to(device, non_blocking = True)
+            
+            # Compute loss for each batch
+            batch_loss = criterion(outputs, labels).mean()
+            
+            # Backward pass and optimize
+            batch_loss.backward()
+            optimizer.step()
+
+            train_loss_avg += batch_loss
+
+        # Number of batch in training set
+        train_num_batch = train_size / config["train"]["batch_size"]
+        # Average the total loss of all batches
+        train_loss_avg = train_loss_avg / train_num_batch
+
+        model_save_path = f'{config["output_folder"]}/epoch_{epoch}_trainloss_{train_loss_avg:.6f}.pt'
+        torch.save(model, model_save_path)
+
+        print(f'Training loss: {train_loss_avg:.6f}')
+
+
+        with torch.no_grad():
+            model.eval()
+
+            val_loss_avg = 0
+            for _, (images, labels) in enumerate(val_data_loader):  
+                
+                outputs = model.forward(
+                    images.to(device, non_blocking = True),
+                )
+
+                labels = labels.float().to(device, non_blocking = True)
+                
+                # Compute loss for each batch
+                batch_loss = criterion(outputs, labels).mean()
+
+                val_loss_avg += batch_loss
+
+            # Number of batch in validation set
+            val_num_batch = val_size / config["train"]["batch_size"]
+            # Average the total loss of all batches
+            val__loss_avg = val_loss_avg / val_num_batch
+
+            print(f'Validation loss: {val_loss_avg:.6f}')
+
+
+
+
 
 
 
@@ -141,6 +178,9 @@ if __name__ == "__main__":
         config = yaml.safe_load(file)
 
     print(f"We will be using device = {args.device}!")
+
+    num_gpus = torch.cuda.device_count()        ####
+    print(f"Number of used GPUs: {num_gpus}")   ####
 
     main(device=args.device, config=config)
 
