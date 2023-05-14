@@ -53,11 +53,12 @@ class PairedLensingImageDataset(Dataset):
     def __getitem__(self, idx):
         if idx >= self.size:
             raise Exception
-        img_pair, label = load_fits_file(self.file_names[idx])
+        file_path = self.file_names[idx]
+        img_pair, label = load_fits_file(file_path)
         transform = LensingImageTransform()
         img1 = transform(img_pair[:, :, 0])
         img2 = transform(img_pair[:, :, 1])
-        return img1, img2, label
+        return img1, img2, label, file_path
 
     def __len__(self):
         return self.size

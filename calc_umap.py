@@ -45,7 +45,7 @@ def main(device, args):
     # Forward pass to get the learned representation
     dict_result = defaultdict(list)
     with torch.no_grad():
-        for idx, (images1, images2, labels) in enumerate(tqdm(data_loader, desc="Train Set")):
+        for (images1, images2, labels, paths) in tqdm(data_loader, desc="Train Set"):
             # Get representations
             repr1 = model(images1.to(device, non_blocking=True))
             repr2 = model(images2.to(device, non_blocking=True))
@@ -53,6 +53,7 @@ def main(device, args):
                 repr1 = repr1[0]
                 repr2 = repr2[0]
             dict_result["representation"].extend(torch.concat([repr1, repr2]).cpu().tolist())
+            dict_result["path"].extend(list(paths))
             # Get labels
             for key, val in labels.items():
                 val = val.cpu().tolist()
