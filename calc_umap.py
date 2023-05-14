@@ -29,8 +29,8 @@ def main(device, args):
     with torch.no_grad():
         for idx, (images1, images2, labels) in enumerate(tqdm(data_loader, desc="Train Set")):
             # Get representations
-            repr1 = model.forward(images1.to(device, non_blocking=True))
-            repr2 = model.forward(images2.to(device, non_blocking=True))
+            repr1 = model(images1.to(device, non_blocking=True))
+            repr2 = model(images2.to(device, non_blocking=True))
             dict_result["representation"].extend(torch.concat([repr1, repr2]).cpu().tolist())
             # Get labels
             for key, val in labels.items():
@@ -86,7 +86,7 @@ def calc_representations_testset(dataset, model, args, device, name):
     data_loader = torch.utils.data.DataLoader(dataset=dataset, batch_size=args.train.batch_size)
     with torch.no_grad():
         for images, labels in tqdm(data_loader, desc=name):
-            repr = model.forward(images.to(device, non_blocking=True))
+            repr = model(images.to(device, non_blocking=True))
             representations.extend(repr.cpu().tolist())
     representations = np.array(representations)
     return representations

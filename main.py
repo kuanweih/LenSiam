@@ -44,7 +44,7 @@ def main(device, args):
             # idx and labels will not be used
 
             model.zero_grad()
-            data_dict = model.forward(
+            data_dict = model(
                 images1.to(device, non_blocking=True),
                 images2.to(device, non_blocking=True),
             )
