@@ -58,7 +58,6 @@ def main(device, args):
             for key, val in labels.items():
                 val = val.cpu().tolist()
                 dict_result[key].extend(val)
-                dict_result[key].extend(val)
 
     # Convert list to np arrays
     for key, val in dict_result.items():
