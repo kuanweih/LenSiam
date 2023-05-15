@@ -8,10 +8,10 @@ dataset:
   data_dir: D:\Datasets\2023_strong_lensing_data_set\data_set  # path/to/the/dataset
   subset_size: null
 
-model: 
-  name: simsiam
-  backbone: vit-base  # vit-base, resnet50, resnet18
-  file: D:\Projects\2023_simsiam_vit_lensing\20230420_100k_eff_batch_size_400_models\100k_eff_batch_size_400\DP\simsiam-lensing_0411102733_loss_-0.9243.pt  # provide the model path 
+model:
+  name: simsiam  # simsiam or eccv_2022
+  backbone: vit-base  # only used if name == simsiam, e.g. vit-base, resnet50, resnet18, etc. 
+  file: D:\Projects\2023_simsiam_vit_lensing\20230503_icml_models\100k_lr_0.01\DP\ViT_bsize_400\simsiam-lensing_0428121241_loss_-0.9232.pt  # provide the model path 
 
 train:
   batch_size: 20
