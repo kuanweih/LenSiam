@@ -16,22 +16,45 @@ def main(device, args):
     dataset = get_dataset(args.dataset.name, args.dataset.data_dir, args.dataset.subset_size)
     data_loader = torch.utils.data.DataLoader(dataset=dataset, batch_size=args.train.batch_size)
 
-    # Load the trained backbone model
-    model = get_backbone(args.model.backbone).to(device)
+    # Load the trained model
+    flag_hugginface_model = False  # hugginface model calling returns differently
+    # - for simsiam backbones trained from this repo
+    if args.model.name == "simsiam":
+        model = get_backbone(args.model.backbone).to(device)
+        ckpt = torch.load(args.model.file, map_location='cpu')
+        assert ckpt["backbone"] == args.model.backbone  # make sure loaded model == model
+        model.load_state_dict(ckpt["backbone_state_dict"])
+    # - for models trained from https://github.com/kuanweih/strong_lensing_vit_resnet
+    elif args.model.name == "eccv_2022":
+        import torchvision
+        from transformers import ViTForImageClassification
+        model = torch.load(args.model.file, map_location='cpu')
+        if isinstance(model, ViTForImageClassification):
+            model.classifier = torch.nn.Identity()
+            flag_hugginface_model = True
+        elif isinstance(model, torchvision.models.resnet.ResNet):
+            model.fc = torch.nn.Identity()
+        else:
+            raise TypeError
+    else:
+        raise NotImplementedError
+
     model = torch.nn.DataParallel(model)
-    ckpt = torch.load(args.model.file, map_location='cpu')
-    assert ckpt["backbone"] == args.model.backbone  # make sure loaded model == model
-    model.module.load_state_dict(ckpt["backbone_state_dict"])
     model.eval()
 
     # Forward pass to get the learned representation
     dict_result = defaultdict(list)
     with torch.no_grad():
-        for idx, (images1, images2, labels) in enumerate(tqdm(data_loader, desc="Train Set")):
+        for (images1, images2, labels, paths) in tqdm(data_loader, desc="Train Set"):
             # Get representations
             repr1 = model(images1.to(device, non_blocking=True))
             repr2 = model(images2.to(device, non_blocking=True))
+            if flag_hugginface_model:
+                repr1 = repr1[0]
+                repr2 = repr2[0]
             dict_result["representation"].extend(torch.concat([repr1, repr2]).cpu().tolist())
+            dict_result["path"].extend(list(paths))
+            dict_result["path"].extend(list(paths))
             # Get labels
             for key, val in labels.items():
                 val = val.cpu().tolist()
@@ -47,7 +70,8 @@ def main(device, args):
     for key in vars(args.testsets):
         _kwarg = vars(vars(args.testsets)[key])
         dataset = get_umap_testset(key, **_kwarg)
-        dict_testset_repr[key] = calc_representations_testset(dataset, model, args, device, key)
+        dict_testset_repr[key] = calc_representations_testset(
+            dataset, model, args, device, key, flag_hugginface_model)
 
     # Fit the UMAP reducer using all data points (main + testsets)
     reducer = umap.UMAP(n_neighbors=args.umap.n_neighbors)
@@ -69,7 +93,7 @@ def main(device, args):
     np.save(os.path.join(args.output_dir, "umap_testsets.npy"), result)
 
 
-def calc_representations_testset(dataset, model, args, device, name):
+def calc_representations_testset(dataset, model, args, device, name, flag_hugginface_model):
     """ Calculate representations for a given testset via forward pass to the model
 
     Args:
@@ -87,6 +111,8 @@ def calc_representations_testset(dataset, model, args, device, name):
     with torch.no_grad():
         for images, labels in tqdm(data_loader, desc=name):
             repr = model(images.to(device, non_blocking=True))
+            if flag_hugginface_model:
+                repr = repr[0]
             representations.extend(repr.cpu().tolist())
     representations = np.array(representations)
     return representations

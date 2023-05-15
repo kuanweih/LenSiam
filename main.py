@@ -40,8 +40,8 @@ def main(device, args):
             train_loader,
             desc=f'Epoch {epoch}/{args.train.num_epochs}',
         )
-        for idx, (images1, images2, labels) in enumerate(local_progress):
-            # idx and labels will not be used
+        for (images1, images2, labels, paths) in local_progress:
+            # labels and paths will not be used
 
             model.zero_grad()
             data_dict = model(
