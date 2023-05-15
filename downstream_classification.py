@@ -23,14 +23,12 @@ def main(device, config):
         subset_size=config["dataset"]["subset_size"],
     )
 
-    train_size = int(config["train"]["train_fraction"] * len(dataset))  
-    val_size = int(config["train"]["val_fraction"] * len(dataset)) 
+    train_size = int(config["train"]["train_fraction"] * len(dataset))
+    val_size = int(config["train"]["val_fraction"] * len(dataset))
     test_size = len(dataset) - (train_size + val_size)
 
-
     train_dataset, val_dataset, test_dataset = torch.utils.data.random_split(
-        dataset, [train_size, val_size, test_size]
-    )
+        dataset, [train_size, val_size, test_size])
 
     # Create data loaders for train, val, and test sets
     train_data_loader = torch.utils.data.DataLoader(
@@ -93,15 +91,15 @@ def main(device, config):
 
 
 
-    global_progress = tqdm(range(0, config["train"]["num_epochs"]), desc = 'Training')
+    global_progress = tqdm(range(0, config["train"]["num_epochs"]), desc='Training')
 
     for epoch in global_progress:
         model.train()
 
         local_progress = tqdm(
-                        train_data_loader,
-                        desc = f'Epoch {epoch}/{config["train"]["num_epochs"]}',
-                        )
+            train_data_loader,
+            desc = f'Epoch {epoch}/{config["train"]["num_epochs"]}',
+        )
 
         train_loss_avg = 0
         for _, (images, labels) in enumerate(local_progress):  
@@ -109,10 +107,10 @@ def main(device, config):
             model.zero_grad()
             
             outputs = model.forward(
-                images.to(device, non_blocking = True),
+                images.to(device, non_blocking=True),
             )
 
-            labels = labels.float().to(device, non_blocking = True)
+            labels = labels.float().to(device, non_blocking=True)
             
             # Compute loss for each batch
             batch_loss = criterion(outputs, labels).mean()
@@ -128,6 +126,7 @@ def main(device, config):
         # Average the total loss of all batches
         train_loss_avg = train_loss_avg / train_num_batch
 
+        # TODO: i think you should move this after the eval section below. check TODO (*)
         model_save_path = f'{config["output_folder"]}/epoch_{epoch}_trainloss_{train_loss_avg:.6f}.pt'
         torch.save(model, model_save_path)
 
@@ -141,10 +140,10 @@ def main(device, config):
             for _, (images, labels) in enumerate(val_data_loader):  
                 
                 outputs = model.forward(
-                    images.to(device, non_blocking = True),
+                    images.to(device, non_blocking=True),
                 )
 
-                labels = labels.float().to(device, non_blocking = True)
+                labels = labels.float().to(device, non_blocking=True)
                 
                 # Compute loss for each batch
                 batch_loss = criterion(outputs, labels).mean()
@@ -154,9 +153,29 @@ def main(device, config):
             # Number of batch in validation set
             val_num_batch = val_size / config["train"]["batch_size"]
             # Average the total loss of all batches
-            val__loss_avg = val_loss_avg / val_num_batch
+            val_loss_avg = val_loss_avg / val_num_batch
 
             print(f'Validation loss: {val_loss_avg:.6f}')
+
+        # TODO (*): i think you should put the model saving part here, with an if condition:
+        #           if val_loss_avg is smaller than the lowest val loss ever seen, then
+        #           (1) save the model
+        #           (2) update the lowest val loss = val_loss_avg
+        #           see https://github.com/kuanweih/strong_lensing_vit_resnet/blob/4392b4e328e3ccc81160b11da7b082da7b80f322/train_model.py#L251
+
+        # TODO for both train and validation section, in addition to recording the loss, i think we also
+        # need to record the following quantities because we are interested in recall and precision:
+        # (1) number of samples with correct prediction
+        # (2) number of total samples
+        # (3) number of positive samples with correct prediction
+        # (4) number of negative samples with correct prediction
+        # (5) number of total positive samples
+        # (6) number of total negative samples
+        # these are the ones on top of my head. feel free to adjust it with you judguement!
+
+
+
+
 
 
 
