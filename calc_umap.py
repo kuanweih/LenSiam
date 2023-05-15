@@ -54,9 +54,11 @@ def main(device, args):
                 repr2 = repr2[0]
             dict_result["representation"].extend(torch.concat([repr1, repr2]).cpu().tolist())
             dict_result["path"].extend(list(paths))
+            dict_result["path"].extend(list(paths))
             # Get labels
             for key, val in labels.items():
                 val = val.cpu().tolist()
+                dict_result[key].extend(val)
                 dict_result[key].extend(val)
 
     # Convert list to np arrays
