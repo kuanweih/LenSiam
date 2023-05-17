@@ -4,3 +4,4 @@ matplotlib
 astropy
 transformers
 umap-learn
+pandas

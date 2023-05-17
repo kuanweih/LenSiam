@@ -11,7 +11,7 @@ model:
 train:
   batch_size: 20
   learning_rate: 0.01
-  num_epochs: 1
+  num_epochs: 5
   train_fraction: 0.7
   val_fraction: 0.15
 

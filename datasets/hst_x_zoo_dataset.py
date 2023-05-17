@@ -12,7 +12,7 @@ from .parameters import image_size, imagenet_mean_std
 def get_hst_x_zoo(root, subset_size=None):
     transform = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Resize((image_size, image_size)),
+        transforms.Resize((image_size, image_size), antialias=True),   # Setting 'antialias=True' to stop generating warnings
         transforms.Lambda(lambda x:(x - x.min()) / (x.max() - x.min())),  # normalized [0, 1]
         transforms.Normalize(*imagenet_mean_std),
     ])
