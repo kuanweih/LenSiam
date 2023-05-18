@@ -6,6 +6,7 @@ dataset:  # hst x zoo
 model: 
   name: simsiam
   backbone: vit-base  # vit-base, resnet50, resnet18
+  load_trained_weights: False  # flag to resume from our trained model
   file: /Users/chang.1750/Documents/Projects/2023/2023_simsiam_vit_lensing/simsiam_trained_models/100k_lr_0.01/DP/ViT_bsize_400/simsiam-lensing_0428121241_loss_-0.9232.pt  # provide the model path 
 
 train:

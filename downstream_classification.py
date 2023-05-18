@@ -15,7 +15,6 @@ from datasets.hst_x_zoo_dataset import get_hst_x_zoo
 
 import matplotlib.pyplot as plt 
 import pandas as pd
-# from itertools import islice
 
 
 def main(device, config):
@@ -58,9 +57,23 @@ def main(device, config):
 
     # Load the trained backbone model
     model = get_backbone(config["model"]["backbone"]).to(device)
-    ckpt = torch.load(config["model"]["file"], map_location='cpu')
-    assert ckpt["backbone"] == config["model"]["backbone"]  # make sure loaded model == model
-    model.load_state_dict(ckpt["backbone_state_dict"])
+    # ckpt = torch.load(config["model"]["file"], map_location='cpu')
+    # assert ckpt["backbone"] == config["model"]["backbone"]  # make sure loaded model == model
+    # model.load_state_dict(ckpt["backbone_state_dict"])
+
+
+    # fill in pre-trained weights if provided
+    if config["model"]["load_trained_weights"]:
+        file_path = os.path.join(config["model"]["file"])
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"{file_path} does not exist!")
+        else:
+            ckpt = torch.load(file_path, map_location='cpu')
+            assert ckpt["backbone"] == config["model"]["backbone"]  # make sure loaded model == model
+            model.load_state_dict(ckpt["backbone_state_dict"])
+
+
+
 
 
     # # Freeze parameters of the pre-trained model  
@@ -154,7 +167,6 @@ def main(device, config):
         train_predictions = 0
 
         for _, (images, labels) in enumerate(train_local_progress):  
-        # for _, (images, labels) in islice(enumerate(train_local_progress), 1):  
 
             model.zero_grad()
             
@@ -227,7 +239,6 @@ def main(device, config):
             val_predictions = 0
 
             for _, (images, labels) in enumerate(val_local_progress):  
-            # for _, (images, labels) in islice(enumerate(val_local_progress), 1):  
                 
                 outputs = model(
                     images.to(device, non_blocking=True),
@@ -282,7 +293,6 @@ def main(device, config):
             test_predictions = 0
 
             for _, (images, labels) in enumerate(test_local_progress):  
-            # for _, (images, labels) in islice(enumerate(test_local_progress), 1):  
                 
                 outputs = model(
                     images.to(device, non_blocking=True),
@@ -313,14 +323,17 @@ def main(device, config):
         #           see https://github.com/kuanweih/strong_lensing_vit_resnet/blob/4392b4e328e3ccc81160b11da7b082da7b80f322/train_model.py#L251
 
         
-
+ 
         # Record all losses, make plot, and save the outputs
         epoch_list.append(epoch)
         train_loss_list.append(train_loss_avg.detach().cpu().numpy())
         val_loss_list.append(val_loss_avg.detach().cpu().numpy())
 
-        plt.plot(epoch_list, train_loss_list, '-o', color= 'purple')
-        plt.plot(epoch_list, val_loss_list, '-o', color= 'coral')
+        plt.plot(epoch_list, train_loss_list, '-o', color= 'navy', label = 'Train')
+        plt.plot(epoch_list, val_loss_list, '-o', color= 'coral', label = 'Val')
+        plt.xlabel('Epochs')
+        plt.ylabel('Loss')
+        plt.legend()
         plt.savefig(f'{config["output_folder"]}/plotter.pdf')
         
 
@@ -405,7 +418,7 @@ def main(device, config):
 
         if val_loss_avg < train_loss_avg:
             lowest_loss = val_loss_avg
-            model_save_path = f'{config["output_folder"]}/epoch_{epoch}_trainloss_{lowest_loss:.6f}.pt'
+            model_save_path = f'{config["output_folder"]}/epoch_{epoch}_loss_{lowest_loss:.6f}.pt'
             torch.save(model, model_save_path)
 
 
