@@ -16,7 +16,6 @@ from datasets.hst_x_zoo_dataset import get_hst_x_zoo
 import matplotlib.pyplot as plt 
 import pandas as pd
 
-
 def main(device, config):
 
     # Load dataset
@@ -26,14 +25,13 @@ def main(device, config):
     )
 
     train_size = int(config["train"]["train_fraction"] * len(dataset))
-    val_size = int(config["train"]["val_fraction"] * len(dataset))
-    test_size = len(dataset) - (train_size + val_size)
+    test_size = len(dataset) - train_size
 
     # Set the random seed
     torch.manual_seed(42)
 
-    train_dataset, val_dataset, test_dataset = torch.utils.data.random_split(
-        dataset, [train_size, val_size, test_size])
+    train_dataset, test_dataset = torch.utils.data.random_split(
+        dataset, [train_size, test_size])
 
     # Create data loaders for train, val, and test sets
     train_data_loader = torch.utils.data.DataLoader(
@@ -42,25 +40,15 @@ def main(device, config):
         batch_size = config["train"]["batch_size"],
     )
 
-    val_data_loader = torch.utils.data.DataLoader(
-        dataset = val_dataset,
-        shuffle = False,
-        batch_size = config["train"]["batch_size"],    ## What is the batch size here?
-    )
-
     test_data_loader = torch.utils.data.DataLoader(
         dataset = test_dataset,
         shuffle = False,
-        batch_size = config["train"]["batch_size"],    ## What is the batch size here?
+        batch_size = config["train"]["batch_size"], 
     )
 
 
     # Load the trained backbone model
     model = get_backbone(config["model"]["backbone"]).to(device)
-    # ckpt = torch.load(config["model"]["file"], map_location='cpu')
-    # assert ckpt["backbone"] == config["model"]["backbone"]  # make sure loaded model == model
-    # model.load_state_dict(ckpt["backbone_state_dict"])
-
 
     # fill in pre-trained weights if provided
     if config["model"]["load_trained_weights"]:
@@ -74,22 +62,35 @@ def main(device, config):
 
 
 
-
-
     # # Freeze parameters of the pre-trained model  
     # for param in model.parameters():
     #     param.requires_grad = False
 
 
-    # Dimension for the last layer
-    input_dim = model.encoder.ln.normalized_shape[0]  # This will be 768 from our setting
+    # Define the last layer
+    # Output dimension of the last layer
     output_dim = 2  # Binary classification (0: not lens. 1: lens)
 
-    # Change the last layer of the original model
-    model.heads = nn.Sequential(
+    if config["model"]["backbone"] == 'vit-base':
+
+        # Input dimension of the last layer
+        input_dim = model.encoder.ln.normalized_shape[0]  # This will be 768 from our setting
+
+        model.heads = nn.Sequential(
         nn.Linear(input_dim, output_dim),  
         # nn.Sigmoid(),  # Use BCEWithLogitsLoss so no need for sigmoid here
-    )    
+        )    
+
+    else: # resnet
+
+        # Input dimension of the last layer
+        input_dim = model.layer4[-1].bn3.num_features  # This will be 2048 for ResNet-101
+
+        model.fc = nn.Sequential(
+        nn.Linear(input_dim, output_dim),  
+        # nn.Sigmoid(),  # Use BCEWithLogitsLoss so no need for sigmoid here
+        )    
+    
     model = model.to(device)
     model = torch.nn.DataParallel(model)
 
@@ -117,37 +118,11 @@ def main(device, config):
 
     epoch_list = []
     train_loss_list = []
-    val_loss_list = []
-
-    train_TP_list = []
-    train_FP_list = []
-    train_TN_list = []
-    train_FN_list = []
-
-    val_TP_list = []
-    val_FP_list = []
-    val_TN_list = []
-    val_FN_list = []
-
-    test_TP_list = []
-    test_FP_list = []
-    test_TN_list = []
-    test_FN_list = []
-
-    # train_accuracy_list = []
-    # train_precision_list = []
-    # train_recall_list = []
-    # train_f1_list = []
-
-    # val_accuracy_list = []
-    # val_precision_list = []
-    # val_recall_list = []
-    # val_f1_list = []
-
-    # test_accuracy_list = []
-    # test_precision_list = []
-    # test_recall_list = []
-    # test_f1_list = []
+    test_loss_list = []
+    
+    train_label_pred_epoch_list = []
+    test_label_pred_epoch_list = []
+    
 
     for epoch in global_progress:
 
@@ -159,56 +134,38 @@ def main(device, config):
         )
 
         train_loss_avg = 0
-        train_TP = 0
-        train_FP = 0
-        train_TN = 0
-        train_FN = 0
-        train_T = 0
-        train_predictions = 0
+        train_pred_epoch = torch.empty((0, 2)).to(device)
+        if epoch == 0:
+            train_label = torch.empty((0, 2)).to(device)
+
 
         for _, (images, labels) in enumerate(train_local_progress):  
 
             model.zero_grad()
             
             outputs = model(
-                images.to(device, non_blocking=True),  # outputs: one-hot format
+                images.to(device, non_blocking=True),  # outputs: one-hot format;  dim = (batch_size, 2)
             )
+            print(outputs)
 
-            labels = labels.float().to(device, non_blocking=True)  # labels: one-hot format
+            labels = labels.float().to(device, non_blocking=True)  # labels: one-hot format;  dim = (batch_size, 2)
             
             # Compute loss for each batch
             batch_loss = criterion(outputs, labels).mean()
-            
+            train_loss_avg += batch_loss
+
             # Backward pass and optimize
             batch_loss.backward()
             optimizer.step()
 
-            train_loss_avg += batch_loss
+            # m=nn.Sigmoid()
+            m = nn.Softmax(dim=1)
+            outputs = m(outputs) # dim = (batch_size, 2)
 
 
-            with torch.no_grad():
-                model.eval()
-
-                outputs = model(
-                    images.to(device, non_blocking=True),
-                )
-
-                m=nn.Sigmoid()
-                outputs = m(outputs)
-                # Convert the one-hot outputs to a prediction tensor with only 0, 1
-                train_predictions = torch.argmax(outputs, dim=1)  
-                
-                # Convert the one-hot labels to a prediction tensor with only 0, 1
-                train_labels = torch.argmax(labels, dim=1)
-
-                train_TP += ((train_predictions == 1) & (train_labels == 1)).sum().item()
-                train_FP += ((train_predictions == 1) & (train_labels == 0)).sum().item()
-                train_TN += ((train_predictions == 0) & (train_labels == 0)).sum().item()
-                train_FN += ((train_predictions == 0) & (train_labels == 1)).sum().item()
-                train_T += torch.eq(train_predictions, train_labels).sum().item()
-                train_predictions += len(train_labels.detach().cpu().numpy())
-            
-            model.train()
+            train_pred_epoch = torch.cat((train_pred_epoch, outputs), dim=0)
+            if epoch == 0:
+                train_label = torch.cat((train_label, labels), dim=0)
 
 
         # Number of batch in training set
@@ -217,66 +174,14 @@ def main(device, config):
         train_loss_avg = train_loss_avg / train_num_batch
         # print(f'Training loss: {train_loss_avg:.6f}')
 
-        
-# -------------------------
-
-
-        # Test the model on validation set
-        val_local_progress = tqdm(
-            val_data_loader,
-            desc = f'Epoch {epoch}/{config["train"]["num_epochs"]}',
-        )
-
-        with torch.no_grad():
-            model.eval()
-
-            val_loss_avg = 0
-            val_TP = 0
-            val_FP = 0
-            val_TN = 0
-            val_FN = 0
-            val_T = 0
-            val_predictions = 0
-
-            for _, (images, labels) in enumerate(val_local_progress):  
-                
-                outputs = model(
-                    images.to(device, non_blocking=True),
-                )
-
-                labels = labels.float().to(device, non_blocking=True)
-                
-                # Compute loss for each batch
-                batch_loss = criterion(outputs, labels).mean()
-
-                val_loss_avg += batch_loss
-                
- 
-                m=nn.Sigmoid()
-                outputs = m(outputs)
-                # Convert the one-hot outputs to a prediction tensor with only 0, 1
-                val_predictions = torch.argmax(outputs, dim=1)  
-                
-                # Convert the one-hot labels to a prediction tensor with only 0, 1
-                val_labels = torch.argmax(labels, dim=1)
-
-                val_TP += ((val_predictions == 1) & (val_labels == 1)).sum().item()
-                val_FP += ((val_predictions == 1) & (val_labels == 0)).sum().item()
-                val_TN += ((val_predictions == 0) & (val_labels == 0)).sum().item()
-                val_FN += ((val_predictions == 0) & (val_labels == 1)).sum().item()
-                val_T += torch.eq(val_predictions, val_labels).sum().item()
-                val_predictions += len(val_labels.detach().cpu().numpy())
-
-
-            # Number of batch in validation set
-            val_num_batch = val_size / config["train"]["batch_size"]
-            # Average the total loss of all batches
-            val_loss_avg = val_loss_avg / val_num_batch
-            # print(f'Validation loss: {val_loss_avg:.6f}')
+        if epoch == 0:
+            train_label_pred_epoch_list.append(train_label.detach().cpu().numpy())
+        train_label_pred_epoch_list.append(train_pred_epoch.detach().cpu().numpy()) 
+        np.save(f'{config["output_folder"]}/train_label_pred_epoch.npy', train_label_pred_epoch_list)
 
 # -------------------------
 
-        # Test the model on testing set
+        # Test the model on test set
         test_local_progress = tqdm(
             test_data_loader,
             desc = f'Epoch {epoch}/{config["train"]["num_epochs"]}',
@@ -285,41 +190,47 @@ def main(device, config):
         with torch.no_grad():
             model.eval()
 
-            test_TP = 0
-            test_FP = 0
-            test_TN = 0
-            test_FN = 0
-            test_T = 0
-            test_predictions = 0
+            test_loss_avg = 0
+            test_pred_epoch = torch.empty((0, 2)).to(device)
+            if epoch == 0:
+                test_label = torch.empty((0, 2)).to(device)
 
             for _, (images, labels) in enumerate(test_local_progress):  
                 
                 outputs = model(
-                    images.to(device, non_blocking=True),
+                    images.to(device, non_blocking=True),    # outputs: one-hot format;  dim = (batch_size, 2)
                 )
 
-                labels = labels.float().to(device, non_blocking=True)                
- 
-                m=nn.Sigmoid()
-                outputs = m(outputs)
-                # Convert the one-hot outputs to a prediction tensor with only 0, 1
-                test_predictions = torch.argmax(outputs, dim=1)  
-                
-                # Convert the one-hot labels to a prediction tensor with only 0, 1
-                test_labels = torch.argmax(labels, dim=1)
+                labels = labels.float().to(device, non_blocking=True)   # labels: one-hot format;  dim = (batch_size, 2)       
 
-                test_TP += ((test_predictions == 1) & (test_labels == 1)).sum().item()
-                test_FP += ((test_predictions == 1) & (test_labels == 0)).sum().item()
-                test_TN += ((test_predictions == 0) & (test_labels == 0)).sum().item()
-                test_FN += ((test_predictions == 0) & (test_labels == 1)).sum().item()
-                test_T += torch.eq(test_predictions, test_labels).sum().item()
-                test_predictions += len(test_labels.detach().cpu().numpy())
+                # Compute loss for each batch
+                batch_loss = criterion(outputs, labels).mean()
+                test_loss_avg += batch_loss        
+ 
+                # m=nn.Sigmoid()
+                m = nn.Softmax(dim=1)
+                outputs = m(outputs) # dim = (batch_size, 2)
+
+                test_pred_epoch = torch.cat((test_pred_epoch, outputs), dim=0)
+                if epoch == 0:
+                    test_label = torch.cat((test_label, labels), dim=0)
+
+            # Number of batch in test set
+            test_num_batch = test_size / config["train"]["batch_size"]
+            # Average the total loss of all batches
+            test_loss_avg = test_loss_avg / test_num_batch
+            # print(f'Test loss: {test_loss_avg:.6f}')
+
+            if epoch == 0:
+                test_label_pred_epoch_list.append(test_label.detach().cpu().numpy())
+            test_label_pred_epoch_list.append(test_pred_epoch.detach().cpu().numpy()) 
+            np.save(f'{config["output_folder"]}/test_label_pred_epoch.npy', test_label_pred_epoch_list)
 
             
         # TODO (*): i think you should put the model saving part here, with an if condition:
-        #           if val_loss_avg is smaller than the lowest val loss ever seen, then
+        #           if test_loss_avg is smaller than the lowest val loss ever seen, then
         #           (1) save the model
-        #           (2) update the lowest val loss = val_loss_avg
+        #           (2) update the lowest test loss = test_loss_avg
         #           see https://github.com/kuanweih/strong_lensing_vit_resnet/blob/4392b4e328e3ccc81160b11da7b082da7b80f322/train_model.py#L251
 
         
@@ -327,97 +238,27 @@ def main(device, config):
         # Record all losses, make plot, and save the outputs
         epoch_list.append(epoch)
         train_loss_list.append(train_loss_avg.detach().cpu().numpy())
-        val_loss_list.append(val_loss_avg.detach().cpu().numpy())
+        test_loss_list.append(test_loss_avg.detach().cpu().numpy())
 
-        plt.plot(epoch_list, train_loss_list, '-o', color= 'navy', label = 'Train')
-        plt.plot(epoch_list, val_loss_list, '-o', color= 'coral', label = 'Val')
+        plt.plot(epoch_list, train_loss_list, '-o', color= 'navy')
+        plt.plot(epoch_list, test_loss_list, '-o', color= 'coral')
         plt.xlabel('Epochs')
         plt.ylabel('Loss')
-        plt.legend()
         plt.savefig(f'{config["output_folder"]}/plotter.pdf')
         
 
-        train_TP_list.append(train_TP)
-        train_FP_list.append(train_FP)
-        train_TN_list.append(train_TN)
-        train_FN_list.append(train_FN)
-
-        val_TP_list.append(val_TP)
-        val_FP_list.append(val_FP)
-        val_TN_list.append(val_TN)
-        val_FN_list.append(val_FN)
-
-        test_TP_list.append(test_TP)
-        test_FP_list.append(test_FP)
-        test_TN_list.append(test_TN)
-        test_FN_list.append(test_FN)
-
-        # def accuracy(T, total):
-        #     return T/total
-        # def precision(TP, FP):
-        #     return TP/(TP+FP)
-        # def recall(TP, FN):
-        #     return TP/(TP+FN)
-        # def f1(TP, FP, FN):
-        #     return 2*(precision(TP, FP)*recall(TP, FN))/ (precision(TP, FP)+recall(TP, FN))
-
-        # train_accuracy_list.append(accuracy(train_T, train_predictions))
-        # train_precision_list.append(precision(train_TP, train_FP))
-        # train_recall_list.append(recall(train_TP, train_FN))
-        # train_f1_list.append(f1(train_TP, train_FP, train_FN))
-
-        # val_accuracy_list.append(accuracy(val_T, val_predictions))
-        # val_precision_list.append(precision(val_TP, val_FP))
-        # val_recall_list.append(recall(val_TP, val_FN))
-        # val_f1_list.append(f1(val_TP, val_FP, val_FN))
-
-        # test_accuracy_list.append(accuracy(test_T, test_predictions))
-        # test_precision_list.append(precision(test_TP, test_FP))
-        # test_recall_list.append(recall(test_TP, test_FN))
-        # test_f1_list.append(f1(test_TP, test_FP, test_FN))
-
-
-        # output_dict = {
-        #     'Epoch': epoch_list,
-        #     'Train_loss': train_loss_list,
-        #     'Val_loss': val_loss_list,
-        #     'Train_acc': train_accuracy_list,
-        #     'Train_prec': train_precision_list,
-        #     'Train_rec': train_recall_list,
-        #     'Train_f1': train_f1_list,
-        #     'Val_acc': val_accuracy_list,
-        #     'Val_prec': val_precision_list,
-        #     'Val_rec': val_recall_list,
-        #     'Val_f1': val_f1_list,
-        #     'Test_acc': test_accuracy_list,
-        #     'Test_prec': test_precision_list,
-        #     'Test_rec': test_recall_list,
-        #     'Test_f1': test_f1_list,
-        # }
         output_dict = {
             'Epoch': epoch_list,
             'Train_loss': train_loss_list,
-            'Val_loss': val_loss_list,
-            'Train_TP': train_TP_list,
-            'Train_FP': train_FP_list,
-            'Train_TN': train_TN_list,
-            'Train_FN': train_FN_list,
-            'Val_TP': val_TP_list,
-            'Val_FP': val_FP_list,
-            'Val_TN': val_TN_list,
-            'Val_FN': val_FN_list,
-            'Test_TP': test_TP_list,
-            'Test_FP': test_FP_list,
-            'Test_TN': test_TN_list,
-            'Test_FN': test_FN_list,
+            'Test_loss': test_loss_list,
         }
         df = pd.DataFrame(output_dict)
         df.to_csv(f'{config["output_folder"]}/output_history.csv', index=False)
 
 
 
-        if val_loss_avg < train_loss_avg:
-            lowest_loss = val_loss_avg
+        if test_loss_avg < train_loss_avg:
+            lowest_loss = test_loss_avg
             model_save_path = f'{config["output_folder"]}/epoch_{epoch}_loss_{lowest_loss:.6f}.pt'
             torch.save(model, model_save_path)
 

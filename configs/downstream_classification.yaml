@@ -5,15 +5,15 @@ dataset:  # hst x zoo
 
 model: 
   name: simsiam
-  backbone: vit-base  # vit-base, resnet50, resnet18
-  load_trained_weights: False  # flag to resume from our trained model
-  file: /Users/chang.1750/Documents/Projects/2023/2023_simsiam_vit_lensing/simsiam_trained_models/100k_lr_0.01/DP/ViT_bsize_400/simsiam-lensing_0428121241_loss_-0.9232.pt  # provide the model path 
-
+  backbone: resnet101 #vit-base  # vit-base, resnet50, resnet18
+  load_trained_weights: True  # flag to resume from our trained model
+  # file: /Users/chang.1750/Documents/Projects/2023/2023_simsiam_vit_lensing/simsiam_trained_models/100k_lr_0.01/DP/ViT_bsize_400/simsiam-lensing_0428121241_loss_-0.9232.pt  # provide the model path 
+  file: /Users/chang.1750/Documents/Projects/2023/2023_simsiam_vit_lensing/simsiam_trained_models/100k_lr_0.03/DP/ResNet101_bsize_400/simsiam-lensing_0520204419_loss_-0.9242.pt
+  
 train:
   batch_size: 20
   learning_rate: 0.01
-  num_epochs: 5
-  train_fraction: 0.7
-  val_fraction: 0.15
+  num_epochs: 1
+  train_fraction: 0.8
 
 output_folder: /Users/chang.1750/Documents/Projects/2023/2023_simsiam_vit_lensing/simsiam_vit_lensing/outputs/downstream_cls_ckpts
