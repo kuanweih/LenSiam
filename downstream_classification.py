@@ -16,6 +16,8 @@ from datasets.hst_x_zoo_dataset import get_hst_x_zoo
 import matplotlib.pyplot as plt 
 import pandas as pd
 
+from itertools import islice
+
 def main(device, config):
 
     # Load dataset
@@ -120,8 +122,13 @@ def main(device, config):
     train_loss_list = []
     test_loss_list = []
     
-    train_label_pred_epoch_list = []
-    test_label_pred_epoch_list = []
+    # Each epoch has 1 label list because we shuffle the training set
+    train_label_epoch_list = []
+    train_pred_epoch_list = []
+
+    # Only 1 label list because we didn't shuffle the test set
+    test_label_list = []
+    test_pred_epoch_list = []
     
 
     for epoch in global_progress:
@@ -134,19 +141,18 @@ def main(device, config):
         )
 
         train_loss_avg = 0
+        train_label_epoch = torch.empty((0, 2)).to(device)
         train_pred_epoch = torch.empty((0, 2)).to(device)
-        if epoch == 0:
-            train_label = torch.empty((0, 2)).to(device)
 
 
-        for _, (images, labels) in enumerate(train_local_progress):  
+        # for _, (images, labels) in enumerate(train_local_progress):  
+        for _, (images, labels) in islice(enumerate(train_local_progress), 1):  
 
             model.zero_grad()
             
             outputs = model(
                 images.to(device, non_blocking=True),  # outputs: one-hot format;  dim = (batch_size, 2)
             )
-            print(outputs)
 
             labels = labels.float().to(device, non_blocking=True)  # labels: one-hot format;  dim = (batch_size, 2)
             
@@ -162,10 +168,8 @@ def main(device, config):
             m = nn.Softmax(dim=1)
             outputs = m(outputs) # dim = (batch_size, 2)
 
-
+            train_label_epoch = torch.cat((train_label_epoch, labels), dim=0)
             train_pred_epoch = torch.cat((train_pred_epoch, outputs), dim=0)
-            if epoch == 0:
-                train_label = torch.cat((train_label, labels), dim=0)
 
 
         # Number of batch in training set
@@ -174,10 +178,10 @@ def main(device, config):
         train_loss_avg = train_loss_avg / train_num_batch
         # print(f'Training loss: {train_loss_avg:.6f}')
 
-        if epoch == 0:
-            train_label_pred_epoch_list.append(train_label.detach().cpu().numpy())
-        train_label_pred_epoch_list.append(train_pred_epoch.detach().cpu().numpy()) 
-        np.save(f'{config["output_folder"]}/train_label_pred_epoch.npy', train_label_pred_epoch_list)
+        train_label_epoch_list.append(train_label_epoch.detach().cpu().numpy())
+        train_pred_epoch_list.append(train_pred_epoch.detach().cpu().numpy()) 
+        np.save(f'{config["output_folder"]}/train_label_epoch.npy', train_label_epoch_list)
+        np.save(f'{config["output_folder"]}/train_pred_epoch.npy', train_pred_epoch_list)
 
 # -------------------------
 
@@ -191,12 +195,13 @@ def main(device, config):
             model.eval()
 
             test_loss_avg = 0
-            test_pred_epoch = torch.empty((0, 2)).to(device)
             if epoch == 0:
                 test_label = torch.empty((0, 2)).to(device)
+            test_pred_epoch = torch.empty((0, 2)).to(device)
 
-            for _, (images, labels) in enumerate(test_local_progress):  
-                
+            # for _, (images, labels) in enumerate(test_local_progress):  
+            for _, (images, labels) in islice(enumerate(test_local_progress), 1):  
+
                 outputs = model(
                     images.to(device, non_blocking=True),    # outputs: one-hot format;  dim = (batch_size, 2)
                 )
@@ -211,9 +216,9 @@ def main(device, config):
                 m = nn.Softmax(dim=1)
                 outputs = m(outputs) # dim = (batch_size, 2)
 
-                test_pred_epoch = torch.cat((test_pred_epoch, outputs), dim=0)
                 if epoch == 0:
                     test_label = torch.cat((test_label, labels), dim=0)
+                test_pred_epoch = torch.cat((test_pred_epoch, outputs), dim=0)
 
             # Number of batch in test set
             test_num_batch = test_size / config["train"]["batch_size"]
@@ -222,9 +227,11 @@ def main(device, config):
             # print(f'Test loss: {test_loss_avg:.6f}')
 
             if epoch == 0:
-                test_label_pred_epoch_list.append(test_label.detach().cpu().numpy())
-            test_label_pred_epoch_list.append(test_pred_epoch.detach().cpu().numpy()) 
-            np.save(f'{config["output_folder"]}/test_label_pred_epoch.npy', test_label_pred_epoch_list)
+                test_label_list.append(test_label.detach().cpu().numpy())
+                np.save(f'{config["output_folder"]}/test_label.npy', test_label_list)
+
+            test_pred_epoch_list.append(test_pred_epoch.detach().cpu().numpy()) 
+            np.save(f'{config["output_folder"]}/test_pred_epoch.npy', test_pred_epoch_list)
 
             
         # TODO (*): i think you should put the model saving part here, with an if condition:
@@ -244,6 +251,7 @@ def main(device, config):
         plt.plot(epoch_list, test_loss_list, '-o', color= 'coral')
         plt.xlabel('Epochs')
         plt.ylabel('Loss')
+        plt.yscale('log')
         plt.savefig(f'{config["output_folder"]}/plotter.pdf')
         
 
