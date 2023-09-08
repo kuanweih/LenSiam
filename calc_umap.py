@@ -13,7 +13,7 @@ from models import get_backbone
 def main(device, args):
 
     # Load dataset
-    dataset = get_dataset(args.dataset.name, args.dataset.data_dir, args.dataset.subset_size)
+    dataset = get_dataset(args.dataset.name, args.dataset.data_dir, args.dataset.subset_size, args.aug_method)
     data_loader = torch.utils.data.DataLoader(dataset=dataset, batch_size=args.train.batch_size)
 
     # Load the trained model

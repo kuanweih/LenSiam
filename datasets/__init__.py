@@ -4,9 +4,9 @@ from .paired_lensing_dataset import PairedLensingImageDataset
 from .umap_testsets import get_stl10, get_2022_lens_geoff, get_real_hst
 
 
-def get_dataset(dataset_name, data_dir, subset_size=None):
+def get_dataset(dataset_name, data_dir, subset_size=None, aug_method=None):
     if dataset_name == 'paired-lensing':
-        dataset = PairedLensingImageDataset(data_dir)
+        dataset = PairedLensingImageDataset(data_dir, aug_method=aug_method)
     else:
         raise NotImplementedError
     if subset_size is not None:
