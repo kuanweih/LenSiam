@@ -10,7 +10,8 @@ from tools import Logger, Checkpointer
 
 
 def main(device, args):
-
+    
+    args.dataset_kwargs['aug_method'] = args.aug_method
     # Load dataset
     train_loader = torch.utils.data.DataLoader(
         dataset=get_dataset(**args.dataset_kwargs),

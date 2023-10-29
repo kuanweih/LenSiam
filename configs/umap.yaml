@@ -28,3 +28,5 @@ testsets:
     root: D:\Datasets\2023_hst_lensed_quasars\npy_files
     suffix: cutout
     subset_size: null
+
+aug_method: lensiam
