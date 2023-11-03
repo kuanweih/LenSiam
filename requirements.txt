@@ -1,6 +1,6 @@
-tqdm
-pyyaml
-matplotlib
-astropy
+tqdm==4.66.1
+pyyaml==6.0.1
+matplotlib==3.7.3
+astropy==5.2.2
 transformers==4.18.0
-umap-learn
+umap-learn==0.5.4
