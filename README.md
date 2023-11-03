@@ -1,5 +1,5 @@
 # LenSiam
-SimSiam with domain-specific augmentation for lensing task
+LenSiam is the Self-Supervised Learning architecture of SimSiam plus a novel domain-specific augmentation for strong gravitational lens images. 
 
 
 Create conda env:  
