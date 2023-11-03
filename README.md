@@ -2,7 +2,10 @@
 SimSiam with domain-specific augmentation for lensing task
 
 
-Create conda env:  ```. conda_env_setup.sh```
+Create conda env:  
+```
+. create_conda_env.sh
+```
 
 
 To train Simsiam models, run  
