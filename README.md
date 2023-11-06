@@ -25,7 +25,7 @@ The [notebook](https://github.com/kuanweih/LenSiam/blob/main/notebooks/NeurIPs_u
 Note:
 * One of the datasets that are used for UMAP calculation is the HST real images. The dataset can be created by running the code in the repo of [kuanweih/lensed_quasar_database_scraper](https://github.com/kuanweih/lensed_quasar_database_scraper).
 
-* We thank the open-source code by [Patrick Hua](https://github.com/PatrickHua). The code of SimSiam used in this work was adapted from their [SimSiam](https://github.com/PatrickHua/SimSiam) repository.
+* We thank [Patrick Hua](https://github.com/PatrickHua) for their open-source code. The code of SimSiam used in this work was adapted from their [SimSiam](https://github.com/PatrickHua/SimSiam) repository.
 
 
 <br>
